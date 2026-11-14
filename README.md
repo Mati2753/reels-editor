@@ -11,7 +11,7 @@ Phase 0 (socle) en place : CLI `reels new <slug>`, composition Remotion `Reel` v
 ## Par où commencer
 
 1. Lire `CLAUDE.md`, puis `docs/ARCHITECTURE.md`.
-2. Dans Claude Code : « Utilise l'agent builder pour implémenter la phase 0 de la roadmap », puis phase par phase.
+2. Dans Claude Code : « Utilise l'agent builder pour implémenter la phase 1 de la roadmap », puis phase par phase.
 3. À partir de la phase 4 : déposer une vidéo dans `projects/<slug>/raw/` et lancer `/edit-reel <slug>`.
 
 ## Documents
