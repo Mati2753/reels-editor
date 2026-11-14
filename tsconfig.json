@@ -16,5 +16,5 @@
     "noEmit": true,
     "types": ["node"]
   },
-  "include": ["src", "remotion.config.ts"]
+  "include": ["src", "scripts", "remotion.config.ts"]
 }

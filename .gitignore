@@ -6,3 +6,6 @@ projects/
 *.log
 .DS_Store
 whisper.cpp/
+.venv/
+__pycache__/
+.venv-synthetic/

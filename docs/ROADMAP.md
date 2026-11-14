@@ -16,7 +16,7 @@ Pour tester, placer une vidéo face caméra de 30 à 60 s dans `projects/demo/ra
 ## Phase 1 : faits
 
 - `reels ingest` : normalisation ffmpeg (30 fps constant, rotation), `probe.json`, `audio.wav`.
-- `reels transcribe` : whisper.cpp, mots horodatés avec identifiants stables.
+- `reels transcribe` : faster-whisper (voir `docs/ARCHITECTURE.md`), mots horodatés avec identifiants stables.
 - `reels analyze` : silences, plans, niveaux, mots de remplissage, prises répétées, phrases, images clés.
 
 **Fait quand :** sur la vidéo de démo, `analysis.json` est complet, les horodatages des mots sont justes à ±0,05 s sur dix mots vérifiés à la main, et relancer une commande sans changement ne refait rien.
