@@ -14,6 +14,8 @@
 
 Vérifier les versions actuelles des paquets au moment de l'installation plutôt que de se fier à ce document.
 
+Toutes les dépendances `remotion` et `@remotion/*` sont épinglées à la même version exacte. Commandes de base : `npm run reels -- <commande>` (ou `npx reels <commande>`), `npm run studio`, `npm test`, `npm run typecheck`. Sur une machine sans Chrome téléchargé par Remotion, passer `--browser-executable=<chemin>` aux commandes `remotion still` / `remotion render`.
+
 **Licence Remotion** : gratuit pour les particuliers et les sociétés de 3 personnes ou moins ; au-delà, une licence société est requise. À vérifier avant un usage commercial.
 
 **Pas d'appel API au runtime.** Le directeur est Claude Code lui-même (agent + skill), pas un service. Aucune clé API n'est nécessaire pour monter une vidéo.
@@ -77,14 +79,17 @@ Le directeur produit `edl.json` en suivant `docs/DIRECTOR.md`. Contrat : `docs/E
 ## Arborescence
 
 ```
+bin/reels.js           exécutable `reels` (charge src/cli/ via tsx, sans étape de build)
+remotion.config.ts     configuration Remotion (point d'entrée)
 src/
-  cli/                 commandes reels
+  cli/                 commandes reels (index.ts : programme commander ; une commande par fichier)
   pipeline/            ingest.ts, transcribe.ts, analyze.ts
   edl/
     schema.ts          schéma zod, source de vérité
     resolve.ts         secondes source ──► images de sortie, résolution des ancres
     validate.ts        règles au-delà du schéma
   remotion/
+    index.ts           point d'entrée Remotion (registerRoot)
     Root.tsx           composition "Reel", props = EDL résolu
     Reel.tsx           empile les pistes : vidéo, overlays, sous-titres, audio
     tracks/            VideoTrack, OverlayTrack, CaptionTrack, AudioTrack

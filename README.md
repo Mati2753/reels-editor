@@ -6,7 +6,7 @@ Un directeur de montage (agent Claude) analyse la vidéo et décide de chaque co
 
 ## État
 
-Structure et guide posés. Le code reste à écrire en suivant `docs/ROADMAP.md`.
+Phase 0 (socle) en place : CLI `reels new <slug>`, composition Remotion `Reel` vide (1080×1920, 30 fps), tests. La suite se construit en suivant `docs/ROADMAP.md`.
 
 ## Par où commencer
 
