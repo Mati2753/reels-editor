@@ -1,0 +1,3 @@
+# Synthetic test footage (scripts/synthetic/generate.py). Separate from the app requirements.
+piper-tts[alignment]==1.8.0
+numpy>=1.26
