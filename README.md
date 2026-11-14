@@ -15,7 +15,7 @@ La suite se construit en suivant `docs/ROADMAP.md`.
 ## Par où commencer
 
 1. Lire `CLAUDE.md`, puis `docs/ARCHITECTURE.md`.
-2. Dans Claude Code : « Utilise l'agent builder pour implémenter la phase 1 de la roadmap », puis phase par phase.
+2. Dans Claude Code : « Utilise l'agent builder pour implémenter la phase 2 de la roadmap », puis phase par phase.
 3. À partir de la phase 4 : déposer une vidéo dans `projects/<slug>/raw/` et lancer `/edit-reel <slug>`.
 
 ## Documents

@@ -117,7 +117,7 @@ type AudioConfig = {
 
 ## Résolution
 
-`resolve(edl, transcript)` produit l'EDL résolu que consomme Remotion : chaque segment, overlay, page de sous-titres et effet sonore y porte `fromFrame` et `durationInFrames`. Les composants Remotion ne lisent que l'EDL résolu et ne refont aucun calcul de temps.
+`resolve(edl, analysis)` lit les mots dans `analysis.words` (bornes recalées sur l'énergie audio, plus justes que celles de `transcript.json`) et produit l'EDL résolu que consomme Remotion : chaque segment, overlay, page de sous-titres et effet sonore y porte `fromFrame` et `durationInFrames`. Les composants Remotion ne lisent que l'EDL résolu et ne refont aucun calcul de temps.
 
 ## Règles de validation
 
