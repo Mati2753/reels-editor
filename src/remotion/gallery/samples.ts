@@ -80,6 +80,111 @@ export const overlaySamples: OverlaySample[] = [
     short: { name: "Micro-cravate", detail: "Sans fil, 30 €", icon: "tool" },
     long: { name: "Studio Lumière Paris Onze", detail: "Location de matériel et de plateaux", icon: "pin" },
   },
+  {
+    component: "SplitCompare",
+    duration: 3,
+    short: { left: { label: "Avant", text: "Micro intégré" }, right: { label: "Après", text: "Micro-cravate" } },
+    long: { left: { label: "Sans lumière", text: "Visage sombre et image pleine de bruit" }, right: { label: "Face fenêtre", text: "Peau nette et couleurs naturelles" }, winner: "right" },
+    cues: [0.1, 0.9],
+  },
+  {
+    component: "StepFlow",
+    duration: 3.2,
+    short: { title: "La méthode", steps: ["Cadrer", "Éclairer", "Tourner"] },
+    long: { title: "Préparer un tournage", steps: ["Nettoyer l'objectif du téléphone", "Se placer face à une fenêtre", "Brancher le micro-cravate", "Filmer trois prises par phrase"] },
+    cues: [0.15, 0.75, 1.35, 1.95],
+  },
+  {
+    component: "QuoteCard",
+    duration: 3,
+    short: { quote: "Le son compte plus que l'image.", author: "Marie Dupont", detail: "Réalisatrice" },
+    long: { quote: "Un spectateur pardonne une image moyenne, mais il part dès que le son est mauvais.", author: "Jean-Baptiste Martin", detail: "Ingénieur du son depuis vingt ans" },
+  },
+  {
+    component: "ChatBubble",
+    duration: 3,
+    short: {
+      name: "@abonné",
+      messages: [
+        { text: "Tu filmes avec quoi ?", from: "them" },
+        { text: "Mon téléphone !", from: "me" },
+      ],
+    },
+    long: {
+      name: "@une.abonnée.curieuse",
+      messages: [
+        { text: "Quel micro utilises-tu pour un son aussi propre dehors ?", from: "them" },
+        { text: "Un micro-cravate sans fil à trente euros, tout simplement.", from: "me" },
+        { text: "Merci, je commande ça tout de suite pour mes vidéos !", from: "them" },
+      ],
+    },
+    longIn: {
+      top: {
+        name: "@une.abonnée.curieuse",
+        messages: [
+          { text: "Quel micro utilises-tu pour un son aussi propre dehors ?", from: "them" },
+          { text: "Un micro-cravate sans fil à trente euros, tout simplement.", from: "me" },
+        ],
+      },
+    },
+    cues: [0.1, 0.9, 1.7],
+  },
+  {
+    component: "ChartGrow",
+    duration: 3,
+    short: {
+      title: "Vues par mois",
+      bars: [
+        { label: "Jan", value: 12 },
+        { label: "Fév", value: 19 },
+        { label: "Mars", value: 34 },
+      ],
+      unit: "k",
+    },
+    long: {
+      title: "Audience des six derniers mois",
+      bars: [
+        { label: "Janvier", value: 1200 },
+        { label: "Février", value: 1850 },
+        { label: "Mars", value: 2400 },
+        { label: "Avril", value: 3900 },
+        { label: "Mai", value: 5100 },
+        { label: "Juin", value: 8800 },
+      ],
+      unit: "€",
+      highlight: 5,
+    },
+    longIn: {
+      center: {
+        title: "Audience sur quatre mois",
+        bars: [
+          { label: "Mars", value: 2400 },
+          { label: "Avril", value: 3900 },
+          { label: "Mai", value: 5100 },
+          { label: "Juin", value: 8800 },
+        ],
+        unit: "€",
+      },
+    },
+  },
+  {
+    component: "LogoCard",
+    duration: 2.2,
+    short: { name: "CapCut", tagline: "Montage gratuit" },
+    long: { name: "Studio Lumière Paris", initials: "SLP", tagline: "Location de matériel vidéo à Paris", shape: "circle" },
+  },
+  {
+    component: "ScreenMock",
+    duration: 3,
+    short: { device: "phone", url: "monsite.fr", title: "Filmer mieux en 3 étapes", lines: ["Le guide gratuit"], button: "Télécharger" },
+    long: {
+      device: "browser",
+      url: "boutique.monsite-video.fr",
+      title: "Le kit complet pour filmer au téléphone",
+      lines: ["Micro-cravate, lumière LED et trépied", "Livraison offerte dès cinquante euros", "Garantie deux ans sur tout le matériel"],
+      button: "Voir le kit",
+    },
+  },
 ];
 
 export type Background = "dark" | "light";

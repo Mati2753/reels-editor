@@ -1,10 +1,17 @@
 import { BigNumber } from "./BigNumber";
+import { ChartGrow } from "./ChartGrow";
+import { ChatBubble } from "./ChatBubble";
 import { CtaCard } from "./CtaCard";
 import { HookTitle } from "./HookTitle";
 import { KeywordPop } from "./KeywordPop";
 import { LabelTag } from "./LabelTag";
 import { ListReveal } from "./ListReveal";
+import { LogoCard } from "./LogoCard";
+import { QuoteCard } from "./QuoteCard";
+import { ScreenMock } from "./ScreenMock";
 import { SectionTitle } from "./SectionTitle";
+import { SplitCompare } from "./SplitCompare";
+import { StepFlow } from "./StepFlow";
 import type { OverlayDefinition } from "./types";
 
 /**
@@ -24,4 +31,11 @@ export const overlays: OverlayRegistry = {
   CtaCard,
   SectionTitle,
   LabelTag,
+  SplitCompare,
+  StepFlow,
+  QuoteCard,
+  ChatBubble,
+  ChartGrow,
+  LogoCard,
+  ScreenMock,
 };
