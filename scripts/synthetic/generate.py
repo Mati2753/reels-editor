@@ -12,8 +12,10 @@ The speech is synthesised with Piper (neural TTS) from known sentences placed at
 known instants. Word boundaries come from Piper's phoneme alignments (the durations
 the model actually used to generate the audio), refined on the waveform where a word
 touches a pause. The footage contains long silences of known length, "euh" fillers,
-an immediate repetition, a restarted sentence, a shot change, and clap marks
-(white flash + beep on the same instant) used to check audio/video sync.
+an immediate repetition, a restarted sentence, a shot change, clap marks (white flash +
+beep on the same instant) used to check audio/video sync, and two framing targets at
+known positions (listed in truth.json, "markers") used to check that a punch-in centres
+on the EDL origin.
 
 Usage (from the repository root):
   python3 -m venv .venv-synthetic
@@ -98,6 +100,18 @@ CLIPS = [
 # Words the footage really contains that a montage would consider fillers.
 FILLER_WORDS = {"euh", "voilà"}
 FILLER_PHRASES = [("du", "coup")]
+
+# Framing targets, in display pixels of the 1080x1920 picture: (name, centre x, centre y,
+# ring size). "A" stands where a face would be and "C" off the vertical axis: a punch-in of
+# scale 1.3 can be centred exactly on either (a crop of scale s centres only between 1/(2s)
+# and 1 - 1/(2s) of a 9:16 source). "B" sits near the top-right corner to check that a
+# punch-in asked to centre there stops at the edge of the source picture instead of
+# leaving it. Each target is a white ring, a red inner ring, a white cross and a 12 px red
+# dot on its exact centre.
+MARKERS = [("A", 540, 806, 160), ("B", 950, 230, 120), ("C", 432, 1056, 120)]
+# Magenta border marking the edges of the source picture (it shows in a reframed output
+# only where the crop really reaches the edge of the source).
+BORDER = ("0xff00ff", 6)
 
 CLAP_SECONDS = 0.10
 CLAP_HZ = 1000.0
@@ -276,12 +290,21 @@ def video_filter(truth: ClipTruth, font: str, label: str) -> str:
         parts.append(f"drawbox=x=0:y=0:w=iw:h=ih:color=0x2b6f3a:t=fill:enable='gte(t,{cut})'")
     # Moving element (drawbox does not animate its position, drawtext does): motion
     # inside a shot that scene detection must not mistake for a cut.
-    parts.append(drawtext("O", font, 220, "440+300*sin(t)", "900+200*cos(t*0.7)", color="0xf2c14e"))
+    parts.append(drawtext("O", font, 220, "440+300*sin(t)", "1260+90*cos(t*0.7)", color="0xf2c14e"))
     parts.append(drawtext("HAUT", font, 120, "(w-text_w)/2", "80"))
     parts.append(drawtext(f"{label} PLAN A", font, 90, "(w-text_w)/2", "400", extra=(f":enable='lt(t,{cut})'" if cut else "")))
     if cut is not None:
         parts.append(drawtext(f"{label} PLAN B", font, 90, "(w-text_w)/2", "400", extra=f":enable='gte(t,{cut})'"))
     parts.append(drawtext("%{pts:hms}", font, 70, "(w-text_w)/2", "1700"))
+    for name, cx, cy, size in MARKERS:
+        half, inner = size // 2, size // 4
+        parts.append(f"drawbox=x={cx - half}:y={cy - half}:w={size}:h={size}:color=white:t=6")
+        parts.append(f"drawbox=x={cx - inner}:y={cy - inner}:w={2 * inner}:h={2 * inner}:color=0xff2020:t=4")
+        parts.append(f"drawbox=x={cx - half}:y={cy - 1}:w={size}:h=2:color=white:t=fill")
+        parts.append(f"drawbox=x={cx - 1}:y={cy - half}:w=2:h={size}:color=white:t=fill")
+        parts.append(f"drawbox=x={cx - 6}:y={cy - 6}:w=12:h=12:color=0xff0000:t=fill")
+        parts.append(drawtext(name, font, 40, str(cx + half + 8), str(cy - half)))
+    parts.append(f"drawbox=x=0:y=0:w=iw:h=ih:color={BORDER[0]}:t={BORDER[1]}")
     for c in truth.claps:
         parts.append(f"drawbox=x=0:y=0:w=iw:h=ih:color=white:t=fill:enable='between(t,{c},{c + CLAP_SECONDS - 0.001})'")
     return ",".join(parts)
@@ -361,6 +384,8 @@ def main() -> None:
         "clapSeconds": CLAP_SECONDS,
         "fillerWords": sorted(FILLER_WORDS),
         "fillerPhrases": [" ".join(p) for p in FILLER_PHRASES],
+        # Normalised (0..1) display coordinates of each target's centre, as an EDL origin.
+        "markers": [{"name": n, "x": round(cx / 1080, 4), "y": round(cy / 1920, 4), "px": [cx, cy]} for n, cx, cy, _ in MARKERS],
         "clips": truths,
     }
     (project / "truth.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2) + "\n")
