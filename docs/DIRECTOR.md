@@ -70,6 +70,8 @@ La coupe franche est la transition par défaut et représente environ 90 % des j
 | Changement de lieu ou de moment | `fade` | 0,3–0,5 s |
 | Rupture de ton, humour, erreur | `glitch` | 0,15–0,2 s |
 
+- Une transition ne change ni la durée ni la synchro : sa fenêtre est centrée sur la coupe, la voix reste coupée net, et chaque image est prolongée par sa propre source de part et d'autre (voir `EDL.md`). Regarder à l'aperçu les images de début et de fin de fenêtre : elles montrent quelques images juste avant l'`in` ou juste après l'`out`.
+- `slide` et `whip` prennent une `direction` (vers où l'image part, `left` par défaut) ; garder la même dans tout le Reel.
 - Maximum 1 transition visible par tranche de 8 secondes.
 - Un seul style de transition de section par Reel (tout en `whip` ou tout en `slide`).
 - Toute transition visible est accompagnée d'un effet sonore.
@@ -93,23 +95,37 @@ La coupe franche est la transition par défaut et représente environ 90 % des j
 | L'appel à l'action final | `CtaCard` | bottom ou full |
 | Changement de partie | `SectionTitle` | full |
 
-Ce catalogue est la liste de référence des composants à construire (voir `ROADMAP.md`). Tout nouveau composant y est ajouté.
+**Catalogue.** Ce qui existe réellement dans `src/remotion/overlays/` (`index.ts` est le registre ; `validate` vérifie les props avec le schéma de chaque fichier). Toutes les couleurs, polices et marges viennent du brand kit. Entre parenthèses après une prop : le nombre de caractères maximal accepté par le schéma. Dans cette limite, le texte est composé avec la police réelle dans sa zone (taille réduite, puis retour à la ligne) ; `validate` dit s'il a été réduit (`overlay-text-shrunk`) ou s'il ne tient pas (`overlay-text-overflow`, `overlay-zone-overflow`). Les zones possibles sont celles du composant (`overlay-zone`). Mouvement par défaut entre parenthèses (entrée / sortie, en images à 30 fps) ; `enter` et `exit` le remplacent. La galerie du Studio (`npm run studio`, dossier « Gallery ») et `npm run gallery` (planches-contacts dans `out/gallery/`) montrent chacun d'eux.
+
+| Composant | Props (longueur max) | Zones | Cues | Quand l'utiliser |
+|---|---|---|---|---|
+| `HookTitle` | `text` (60, viser 3 à 7 mots), `highlight` : mots de `text` en couleur d'accent (4 au plus), `kicker` : étiquette au-dessus (24) | top, center | – | L'accroche, dès la première image. Lignes en capitales sur des bandeaux sombres, mots clés soulignés. (scale 10 / fade 5) |
+| `KeywordPop` | `text` (28, 1 à 3 mots), `tone` : `accent` \| `active` \| `light`, `tilt` : −8 à 8° (−3) | top, center | – | Un mot-clé, un concept à retenir, au moment où il est dit. Bloc incliné qui surgit. (pop 10 / scale 5) |
+| `BigNumber` | `value` (nombre), `decimals` 0–2, `prefix` (3), `suffix` (4 : « % », « € », « k »), `label` (40), `countFrom` (0 ; = `value` pour ne pas compter) | top, center, full | – | Un chiffre, un prix, un pourcentage. Compteur qui monte en 0,8 s, unité en accent, libellé dessous. (pop 10 / scale 5) |
+| `ListReveal` | `title` (30), `items` : 2 à 5 textes (40 chacun), `numbered` (oui) | top, center, full | un par item | Une liste annoncée (« trois erreurs »). Chaque item sur le mot qui le nomme ; le dernier apparu est en blanc, les précédents s'estompent. En `top`, 3 items courts au plus. (slide depuis la gauche 10 / fade 5) |
+| `CtaCard` | `title` (28, impératif), `subtitle` (44), `action` : `follow` \| `save` \| `comment` \| `share` \| `like` \| `link`, `handle` (24, « @compte ») | bottom, center, full | – | L'appel à l'action final, un seul. Carte claire, bouton d'accent qui « tape » une fois posé. En `full`, carte de fin centrée. (slide depuis le bas 11 / slide vers le bas 6) |
+| `SectionTitle` | `index` (3 : « 02 »), `title` (36), `subtitle` (48) | full, center | – | Le début d'une nouvelle partie, 1,5 à 2 s plein écran, puis retour au visage. (scale 10 / fade 5) |
+| `LabelTag` | `name` (30), `detail` (40), `icon` : `none` \| `person` \| `pin` \| `tool` \| `brand` \| `link` \| `star` | top, center, bottom | – | Un nom, une marque, un lieu, un outil quand il est cité. Étiquette alignée sur la marge gauche, qui se déplie depuis sa barre d'accent. (slide depuis la gauche 10 / slide vers la gauche 5) |
+
+Tout nouveau composant est ajouté à ce catalogue dans le même commit que son fichier.
 
 **Synchronisation :**
-- L'overlay s'ancre sur le mot qui le justifie et entre 2 à 4 images avant (`offset: -0.1`). L'œil doit voir l'élément au moment où l'oreille entend le mot.
-- Dans une liste, chaque item apparaît sur son propre mot, pas tous ensemble.
+- L'overlay s'ancre sur le mot qui le justifie et entre 2 à 4 images avant (`offset: -0.1`). L'œil doit voir l'élément au moment où l'oreille entend le mot. L'ancre est la première image visible.
+- Dans une liste, chaque item apparaît sur son propre mot, pas tous ensemble : un `cue` par item, ancré comme l'overlay (`offset: -0.1`).
 - Durée : assez pour être lu deux fois. Compter 0,3 s par mot affiché, minimum 1,2 s, maximum 4 s.
 - Sortie avant la phrase suivante, ou sur une coupe.
 
 **Dosage :**
 - Une seule idée à l'écran à la fois. Jamais deux overlays chargés simultanément.
+- Zones : `top` au-dessus du visage, `center` sur le buste (rarement : il cache le corps), `bottom` au-dessus de la légende d'Instagram (les sous-titres `auto` remontent alors au centre), `full` remplace l'image (fond du brand kit) et laisse le tiers inférieur aux sous-titres. Couche par défaut : `front` ; `behind-captions` quand un sous-titre doit pouvoir passer devant ; `background` pour un plein écran sous les autres overlays.
+- Un plein écran chargé en texte (`SplitCompare`, `StepFlow`, `ChartGrow`, `ListReveal` en `full`) se lit mieux sans sous-titres : `captions.hide` sur sa durée ; il peut alors descendre jusqu'à la zone sûre basse.
 - 6 mots maximum par overlay, sous-titres exclus.
 - Plein écran : 1,5 à 4 s, puis retour au visage. Le visage reste à l'écran au moins 50 % du Reel en mode face caméra : c'est lui qui crée la confiance.
 - Une phrase d'émotion ou de conviction se joue sur le visage, sans rien par-dessus.
 
 **Mouvement :**
-- Entrées rapides avec amorti (ressort, 8 à 12 images). Sorties plus rapides que les entrées (4 à 6 images).
-- Les éléments viennent d'une direction cohérente dans tout le Reel.
+- Entrées rapides avec amorti (ressort, 8 à 12 images). Sorties plus rapides que les entrées (4 à 6 images). Les valeurs par défaut des composants le font déjà ; ne les changer que pour une raison.
+- Les éléments viennent d'une direction cohérente dans tout le Reel (`enter.direction` des `slide`).
 - Pas de mouvement linéaire : toujours une courbe d'accélération.
 
 ## 6. Sous-titres

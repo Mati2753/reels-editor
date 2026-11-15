@@ -4,9 +4,11 @@ import { captionStyles as defaultStyles, type CaptionStyle } from "../remotion/c
 import { activeGrowth, breakPages, displayText, layoutPage, type CaptionWord, type LayoutEnv } from "./captions";
 import { cropRect, framingAt, maxAdvisedScale } from "./framing";
 import { IssueList, type Issue } from "./issues";
-import type { TextMeasurer } from "./measure";
-import type { ResolvedCaptionPage, ResolvedClipSegment, ResolvedEdl, ResolvedOverlay, ResolvedSegment, ResolvedToken, ResolvedTransition } from "./resolved";
+import type { TextMeasurer } from "./measure-core";
+import { overlays as defaultOverlays, type OverlayRegistry } from "../remotion/overlays";
+import type { ResolvedCaptionPage, ResolvedClipSegment, ResolvedEdl, ResolvedMotion, ResolvedOverlay, ResolvedSegment, ResolvedToken, ResolvedTransition, TransitionSide } from "./resolved";
 import { isWordAnchor, type Anchor, type Edl, type Motion } from "./schema";
+import { safeArea, zoneArea } from "./zones";
 
 /**
  * resolve(edl, facts) ──► the resolved EDL the Remotion composition renders.
@@ -43,6 +45,7 @@ export interface ResolveEnv {
   measure: TextMeasurer;
   brands?: Readonly<Record<string, BrandKit>>;
   styles?: Readonly<Record<string, CaptionStyle>>;
+  overlays?: OverlayRegistry;
 }
 
 export interface ResolveResult {
@@ -244,39 +247,125 @@ export function resolveEdl(edl: Edl, facts: Facts, env: ResolveEnv): ResolveResu
     if (f < 0 || f > durationInFrames) issues.error("anchor-out-of-range", path, `anchor resolves to ${round3(t)} s, outside the Reel (0-${round3(durationInFrames / FPS)} s)`);
     return f;
   };
-  const motion = (m: Motion | undefined) => (m ? { kind: m.kind, durationInFrames: Math.max(1, toFrame(m.duration)), ...(m.direction ? { direction: m.direction } : {}) } : undefined);
 
-  // ---- transitions
+  // ---- hidden caption spans (needed by the overlays: a full-screen overlay without
+  // captions over it may use the lower third)
+  const hidden: { from: number; to: number }[] = [];
+  edl.captions.hide.forEach((h, i) => {
+    const from = anchorTime(h.from, `captions.hide[${i}].from`);
+    const to = anchorTime(h.to, `captions.hide[${i}].to`);
+    if (from === null || to === null) return;
+    if (to <= from) issues.error("hide-empty", `captions.hide[${i}]`, `hide ends (${round3(to)} s) before it starts (${round3(from)} s)`);
+    else hidden.push({ from, to });
+  });
+
+  // ---- transitions: a window centred on the cut; each side's picture extended by its own
+  // source frames (the voice stays a straight cut, played by the video track)
   const transitions: ResolvedTransition[] = [];
   edl.transitions.forEach((tr) => {
+    const a = segIndex.get(tr.between[0]);
     const b = segIndex.get(tr.between[1]);
-    if (b === undefined) return; // reported by validate
+    if (a === undefined || b === undefined) return; // reported by validate
+    const atFrame = timings[b]!.fromFrame;
+    const durationInFrames = toFrame(tr.duration);
+    const fromFrame = atFrame - Math.floor(durationInFrames / 2);
+    const outgoing = transitionSide(a, fromFrame);
+    const incoming = transitionSide(b, fromFrame);
+    if (!outgoing || !incoming) return;
     transitions.push({
       between: tr.between,
       type: tr.type,
-      atFrame: timings[b]!.fromFrame,
-      durationInFrames: toFrame(tr.duration),
+      atFrame,
+      fromFrame,
+      durationInFrames,
       ...(tr.direction ? { direction: tr.direction } : {}),
+      outgoing,
+      incoming,
     });
   });
+  function transitionSide(i: number, windowStart: number): TransitionSide | null {
+    const seg = edl.segments[i]!;
+    const t = timings[i]!;
+    if (seg.type === "scene") return { kind: "scene", segment: seg.id, background: seg.background };
+    const clip = clips.get(seg.clip);
+    if (!clip) return null;
+    return {
+      kind: "clip",
+      segment: seg.id,
+      src: mediaPath(clip.normalized.video),
+      sourceWidth: clip.normalized.width,
+      sourceHeight: clip.normalized.height,
+      sourceFrames: clip.normalized.frames,
+      firstSourceFrame: t.trimBefore + (windowStart - t.fromFrame) * t.rate,
+      playbackRate: t.rate,
+      framing: seg.framing,
+      segmentFrames: t.durationInFrames,
+      firstSegmentFrame: windowStart - t.fromFrame,
+    };
+  }
 
-  // ---- overlays
+  // ---- overlays: timing, motion, cues, and the layout of each component with the real fonts
+  const registry = env.overlays ?? defaultOverlays;
   const overlays: ResolvedOverlay[] = [];
   edl.overlays.forEach((ov, i) => {
-    const f = anchorFrame(ov.at, `overlays[${i}].at`);
+    const path = `overlays[${i}]`;
+    const f = anchorFrame(ov.at, `${path}.at`);
     if (f === null) return;
-    const enter = motion(ov.enter);
-    const exit = motion(ov.exit);
+    const def = registry[ov.component];
+    if (!def) return; // unknown-overlay: reported by validate
+    const parsed = def.props.safeParse(ov.props);
+    if (!parsed.success) return; // overlay-props: reported by validate
+    if (!def.zones.includes(ov.zone)) {
+      issues.error("overlay-zone", `${path}.zone`, `${ov.component} does not go in zone "${ov.zone}" (zones: ${def.zones.join(", ")})`);
+      return;
+    }
+    const props = parsed.data;
+    const durationInFrames = Math.max(1, toFrame(ov.duration));
+    const motion = (m: Motion | undefined, d: { kind: ResolvedMotion["kind"]; duration: number; direction: ResolvedMotion["direction"] }): ResolvedMotion => ({
+      kind: m?.kind ?? d.kind,
+      durationInFrames: Math.max(1, toFrame(m?.duration ?? d.duration)),
+      direction: m?.direction ?? d.direction,
+    });
+    const enter = motion(ov.enter, def.enter);
+    const exit = motion(ov.exit, def.exit);
+
+    // Cues: frames from the overlay's start, inside the overlay.
+    const cues: number[] = [];
+    const slots = def.cueCount(props);
+    if ((ov.cues?.length ?? 0) > slots) issues.error("overlay-cues", `${path}.cues`, `${ov.component} uses ${slots} cue(s); ${ov.cues?.length} given`);
+    (ov.cues ?? []).forEach((c, k) => {
+      const cf = anchorFrame(c, `${path}.cues[${k}]`);
+      if (cf === null) return;
+      if (cf < f || cf >= f + durationInFrames) issues.error("overlay-cue-range", `${path}.cues[${k}]`, `cue ${k + 1} of "${ov.id}" at ${round3(cf / FPS)} s is outside the overlay (${round3(f / FPS)}-${round3((f + durationInFrames) / FPS)} s)`);
+      cues.push(cf - f);
+    });
+
+    if (!brand) return;
+    const startS = f / FPS;
+    const endS = (f + durationInFrames) / FPS;
+    const captionsShown = edl.captions.enabled && !hidden.some((h) => h.from <= startS + 1e-6 && h.to >= endS - 1e-6);
+    const area = zoneArea(ov.zone, brand.safeZone, captionsShown);
+    const safe = safeArea(brand.safeZone);
+    const laid = def.layout(props, { brand, measure: env.measure, language: edl.meta.language, zone: ov.zone, area, safe });
+    for (const t of laid.texts) {
+      const where = `${path}.props.${t.field}`;
+      if (t.fit.overflow) issues.error("overlay-text-overflow", where, `"${t.fit.text}" does not fit ${ov.component} in zone ${ov.zone} even at ${t.fit.fontSize} px: shorten it`);
+      else if (t.fit.fontSize < t.preferred) issues.warn("overlay-text-shrunk", where, `"${t.fit.text}" is set at ${t.fit.fontSize} px instead of ${t.preferred} px to fit`);
+    }
     overlays.push({
       id: ov.id,
       component: ov.component,
-      props: ov.props,
+      props: props as Record<string, unknown>,
       fromFrame: f,
-      durationInFrames: Math.max(1, toFrame(ov.duration)),
+      durationInFrames,
       layer: ov.layer,
       zone: ov.zone,
-      ...(enter ? { enter } : {}),
-      ...(exit ? { exit } : {}),
+      area,
+      box: roundBox(laid.box),
+      enter,
+      exit,
+      cues,
+      layout: laid.layout,
     });
   });
 
@@ -304,15 +393,6 @@ export function resolveEdl(edl: Edl, facts: Facts, env: ResolveEnv): ResolveResu
     if (!wordsById.has(word)) issues.error("caption-unknown-word", path, `word "${word}" is not in analysis.json`);
     else if (!kept.has(word)) issues.warn("caption-cut-word", path, `word ${word} "${wordsById.get(word)?.text}" is cut by the segments: this entry has no effect`);
   }
-  const hidden: { from: number; to: number }[] = [];
-  edl.captions.hide.forEach((h, i) => {
-    const from = anchorTime(h.from, `captions.hide[${i}].from`);
-    const to = anchorTime(h.to, `captions.hide[${i}].to`);
-    if (from === null || to === null) return;
-    if (to <= from) issues.error("hide-empty", `captions.hide[${i}]`, `hide ends (${round3(to)} s) before it starts (${round3(from)} s)`);
-    else hidden.push({ from, to });
-  });
-
   if (style && brand && edl.captions.enabled) {
     const language = edl.meta.language;
     const safe = brand.safeZone;
@@ -354,7 +434,9 @@ export function resolveEdl(edl: Edl, facts: Facts, env: ResolveEnv): ResolveResu
         ...(t.emphasis ? { emphasis: t.emphasis } : {}),
         width: round3(layout.widths[k] ?? 0),
       }));
-      const overlapsBottom = overlays.some((ov) => (ov.zone === "bottom" || ov.zone === "full") && ov.fromFrame < endFrame && ov.fromFrame + ov.durationInFrames > fromFrame);
+      // "auto": lower third, except during an overlay of the bottom zone (captions move to
+      // the centre, above it). A full-screen overlay keeps its content above the lower third.
+      const overlapsBottom = overlays.some((ov) => ov.zone === "bottom" && ov.fromFrame < endFrame && ov.fromFrame + ov.durationInFrames > fromFrame);
       const position = edl.captions.position === "auto" ? (overlapsBottom ? "center" : "lower-third") : edl.captions.position;
       const height = layout.lines.length * layout.fontSize * style.lineHeight + 2 * style.outlineWidth;
       const width = Math.max(...layout.lineWidths) + activeGrowth(layout.widths, style) + 2 * style.outlineWidth;
@@ -399,6 +481,10 @@ export function resolveEdl(edl: Edl, facts: Facts, env: ResolveEnv): ResolveResu
     issues: issues.items,
     kept,
   };
+}
+
+function roundBox(b: { x: number; y: number; width: number; height: number }) {
+  return { x: round3(b.x), y: round3(b.y), width: round3(b.width), height: round3(b.height) };
 }
 
 function round3(v: number): number {

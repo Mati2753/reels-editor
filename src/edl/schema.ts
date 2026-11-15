@@ -81,21 +81,40 @@ export const SegmentSchema = z.discriminatedUnion("type", [ClipSegmentSchema, Sc
 
 export const DirectionSchema = z.enum(["left", "right", "up", "down"]);
 
+export const TransitionTypeSchema = z.enum(["cut", "fade", "slide", "whip", "zoom", "flash", "glitch"]);
+
+/**
+ * A visible junction between two consecutive segments. It does not overlap them: its
+ * window is centred on the cut, the picture of each segment is extended into the other's
+ * time by its own source frames (muted), and the voice stays a straight cut. The total
+ * duration and every anchor are the same as without the transition (docs/EDL.md).
+ */
 export const TransitionSchema = z.strictObject({
   between: z.tuple([z.string(), z.string()]),
-  type: z.enum(["cut", "fade", "slide", "whip", "zoom", "flash", "glitch"]),
+  type: TransitionTypeSchema,
+  /** Seconds; 0 for "cut". */
   duration: seconds,
+  /** Only for "slide" and "whip": where the picture moves to ("left" by default). */
   direction: DirectionSchema.optional(),
 });
 
 // ---------------------------------------------------------------- overlays
 
-/** Entrance or exit of an overlay. */
+export const MotionKindSchema = z.enum(["fade", "slide", "pop", "scale", "none"]);
+
+/**
+ * Entrance or exit of an overlay. Every field is optional: the component's defaults fill
+ * the gaps (an entrance of about 10 frames on a damped spring, an exit of about 5 frames).
+ * `direction`: side the overlay comes from (enter) or leaves towards (exit), for "slide".
+ */
 export const MotionSchema = z.strictObject({
-  kind: z.enum(["fade", "slide", "pop", "scale"]),
-  duration: z.number().positive(),
+  kind: MotionKindSchema.optional(),
+  duration: z.number().positive().max(1).optional(),
   direction: DirectionSchema.optional(),
 });
+
+export const ZoneSchema = z.enum(["top", "center", "bottom", "full"]);
+export const LayerSchema = z.enum(["background", "behind-captions", "front"]);
 
 export const OverlaySchema = z.strictObject({
   id,
@@ -105,10 +124,16 @@ export const OverlaySchema = z.strictObject({
   props: z.record(z.string(), z.unknown()),
   at: AnchorSchema,
   duration: z.number().positive(),
-  layer: z.enum(["background", "behind-captions", "front"]),
-  zone: z.enum(["top", "center", "bottom", "full"]),
+  layer: LayerSchema,
+  zone: ZoneSchema,
   enter: MotionSchema.optional(),
   exit: MotionSchema.optional(),
+  /**
+   * Moments inside the overlay, in the order the component uses them (one per list item,
+   * step, message, bar): each one appears on its own word. Between the overlay's start and
+   * its end.
+   */
+  cues: z.array(AnchorSchema).optional(),
 });
 
 // ---------------------------------------------------------------- captions
@@ -174,7 +199,12 @@ export type ClipSegment = z.infer<typeof ClipSegmentSchema>;
 export type SceneSegment = z.infer<typeof SceneSegmentSchema>;
 export type Segment = z.infer<typeof SegmentSchema>;
 export type Transition = z.infer<typeof TransitionSchema>;
+export type TransitionType = z.infer<typeof TransitionTypeSchema>;
+export type Direction = z.infer<typeof DirectionSchema>;
 export type Motion = z.infer<typeof MotionSchema>;
+export type MotionKind = z.infer<typeof MotionKindSchema>;
+export type Zone = z.infer<typeof ZoneSchema>;
+export type Layer = z.infer<typeof LayerSchema>;
 export type Overlay = z.infer<typeof OverlaySchema>;
 export type CaptionConfig = z.infer<typeof CaptionConfigSchema>;
 export type AudioConfig = z.infer<typeof AudioConfigSchema>;

@@ -1,13 +1,16 @@
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import type { Probe, TimedWord } from "../pipeline/schemas";
-import type { OverlayRegistry } from "../remotion/overlays";
+import { overlays as overlayRegistry, type OverlayRegistry } from "../remotion/overlays";
 import { boldStyle } from "../remotion/captions/styles";
 import { breakPages, isClitic, type CaptionWord } from "./captions";
 import { cropRect, ease, framingAt, placeSource } from "./framing";
 import type { TextMeasurer } from "./measure";
 import { FPS, resolveEdl, segmentTimings, toFrame, TRUNCATION_TOLERANCE, type Facts } from "./resolve";
-import { EdlSchema, type Edl, type Segment } from "./schema";
+import type { ResolvedSegment } from "./resolved";
+import { EdlSchema, type Edl, type Overlay, type Segment } from "./schema";
+import { fitText } from "./textfit";
+import { defineOverlay, type LayoutContext } from "../remotion/overlays/types";
 import { validateEdl } from "./validate";
 
 // ---------------------------------------------------------------- fixtures
@@ -75,10 +78,25 @@ function edl(over: Partial<Edl> = {}): Edl {
 const env = { measure };
 const rules = (r: { issues: { rule: string; severity: string }[] }, severity = "error") => r.issues.filter((i) => i.severity === severity).map((i) => i.rule);
 
-// A registry with one overlay, to exercise the overlay rules before phase 3 exists.
+// A registry with one overlay whose layout is the whole zone, to exercise the overlay rules
+// independently of the real components (they are tested below with the real fonts).
 const registry: OverlayRegistry = {
-  Tag: { props: z.object({ text: z.string() }), component: () => null },
+  Tag: defineOverlay<{ text: string }, null>({
+    description: "test",
+    props: z.object({ text: z.string() }),
+    zones: ["top", "center", "bottom", "full"],
+    enter: { kind: "pop", duration: 0.3, direction: "up" },
+    exit: { kind: "fade", duration: 0.15, direction: "up" },
+    text: (p) => p.text,
+    cueCount: () => 2,
+    layout: (p, ctx) => {
+      const fit = fitText(p.text, { font: ctx.brand.fonts.display, maxWidth: ctx.area.width, maxLines: 1, maxSize: 80, minSize: 60, lineHeight: 1.2, language: "fr" }, ctx.measure);
+      return { layout: null, box: ctx.area, texts: [{ field: "text", fit, preferred: 80 }] };
+    },
+    render: () => null,
+  }),
 };
+const tag = (id: string, at: Overlay["at"], extra: Partial<Overlay> = {}): Overlay => ({ id, component: "Tag", props: { text: "abc" }, at, duration: 1.5, layer: "front", zone: "top", ...extra });
 
 // ---------------------------------------------------------------- schema
 
@@ -274,6 +292,25 @@ describe("resolveEdl", () => {
     expect(rules(r2)).toContain("caption-overflow");
   });
 
+  it("centres a transition window on the cut and extends each side with its own source frames", () => {
+    const r = resolveEdl(edl({ transitions: [{ between: ["s1", "s2"], type: "whip", duration: 0.25, direction: "left" }] }), facts, env);
+    expect(r.issues.filter((i) => i.severity === "error")).toEqual([]);
+    const t = r.resolved!.transitions[0]!;
+    const [a, b] = r.resolved!.segments as Extract<ResolvedSegment, { type: "clip" }>[];
+    expect(t.atFrame).toBe(b!.fromFrame);
+    expect(t.durationInFrames).toBe(8);
+    expect(t.fromFrame).toBe(t.atFrame - 4);
+    // The total duration does not change.
+    expect(r.resolved!.durationInFrames).toBe(resolveEdl(edl(), facts, env).resolved!.durationInFrames);
+    if (t.outgoing.kind !== "clip" || t.incoming.kind !== "clip") throw new Error("clip sides expected");
+    // Outgoing: on the window's first frame, the frame the segment itself shows; after the cut, its handle.
+    expect(t.outgoing.firstSourceFrame).toBe(a!.trimBefore + (t.fromFrame - a!.fromFrame));
+    expect(t.outgoing.firstSourceFrame + 8).toBeGreaterThan(a!.trimBefore + a!.durationInFrames);
+    // Incoming: 4 source frames before its first frame.
+    expect(t.incoming.firstSourceFrame).toBe(b!.trimBefore - 4);
+    expect(t.incoming.firstSegmentFrame).toBe(-4);
+  });
+
   it("is deterministic", () => {
     expect(JSON.stringify(resolveEdl(edl(), facts, env).resolved)).toBe(JSON.stringify(resolveEdl(edl(), facts, env).resolved));
   });
@@ -376,7 +413,21 @@ describe("validateEdl", () => {
     ["transition-not-consecutive", { transitions: [{ between: ["s1", "s3"], type: "cut", duration: 0 }] }],
     ["transition-unknown-segment", { transitions: [{ between: ["s1", "zz"], type: "cut", duration: 0 }] }],
     ["transition-too-long", { transitions: [{ between: ["s1", "s2"], type: "fade", duration: 1.2 }] }],
-    ["not-rendered-yet", { transitions: [{ between: ["s1", "s2"], type: "fade", duration: 0.3 }] }],
+    ["transition-too-long", { segments: [clip("s1", "c1", 0.94, 1.99), clip("s2", "c1", 3.55, 5.68), clip("s3", "c1", 6.94, 10.5)], transitions: [{ between: ["s2", "s3"], type: "fade", duration: 1.1 }] }],
+    ["transition-direction", { transitions: [{ between: ["s1", "s2"], type: "fade", duration: 0.3, direction: "left" }] }],
+    ["transition-duration", { transitions: [{ between: ["s1", "s2"], type: "whip", duration: 0 }] }],
+    ["not-rendered-yet", { audio: { voice: { targetLufs: -14, denoise: false }, music: { file: "m.mp3", gainDb: -24, duck: true, fadeOut: 1 }, sfx: [] } }],
+    ["not-rendered-yet", { audio: { voice: { targetLufs: -14, denoise: false }, sfx: [{ file: "pop.wav", at: { segment: "s2" }, gainDb: -14 }] } }],
+    ["overlay-zone", { overlays: [{ id: "o1", component: "HookTitle", props: { text: "Trois astuces" }, at: { word: "c1-w1" }, duration: 2, layer: "front", zone: "bottom" }] }, overlayRegistry],
+    ["overlay-props", { overlays: [{ id: "o1", component: "BigNumber", props: { value: "87" }, at: { word: "c1-w1" }, duration: 2, layer: "front", zone: "top" }] }, overlayRegistry],
+    ["overlay-text-overflow", { overlays: [tag("o1", { word: "c1-w1" }, { props: { text: "un texte beaucoup trop long pour tenir sur une seule ligne" } })] }, registry],
+    ["overlay-motion", { overlays: [tag("o1", { word: "c1-w1" }, { duration: 0.3, enter: { duration: 0.3 }, exit: { duration: 0.2 } })] }, registry],
+    ["overlay-cues", { overlays: [tag("o1", { word: "c1-w1" }, { cues: [{ word: "c1-w1" }, { word: "c1-w2" }, { word: "c1-w3" }] })] }, registry],
+    ["overlay-cue-range", { overlays: [tag("o1", { word: "c1-w1" }, { cues: [{ segment: "s3" }] })] }, registry],
+    ["caption-overlay-overlap", { overlays: [tag("o1", { word: "c1-w1" }, { zone: "bottom" })] }, registry],
+    ["overlay-zone-overflow", { overlays: [tag("o1", { word: "c1-w1" })] }, { Tag: { ...registry.Tag!, layout: (_p: unknown, ctx: LayoutContext) => ({ layout: null, box: { ...ctx.area, height: ctx.area.height + 50 }, texts: [] }) } }],
+    ["overlay-safe-zone", { overlays: [tag("o1", { word: "c1-w1" })] }, { Tag: { ...registry.Tag!, layout: (_p: unknown, ctx: LayoutContext) => ({ layout: null, box: { ...ctx.area, x: 20 }, texts: [] }) } }],
+    ["caption-overlay-overlap", { captions: { enabled: true, style: "bold", maxWordsPerPage: 3, position: "center", emphasis: [], overrides: [], hide: [] }, overlays: [tag("o1", { word: "c1-w1" }, { zone: "center" })] }, registry],
     ["unknown-overlay", { overlays: [{ id: "o1", component: "HookTitle", props: {}, at: { word: "c1-w1" }, duration: 2, layer: "front", zone: "top" }] }],
     ["overlay-props", { overlays: [{ id: "o1", component: "Tag", props: { text: 3 }, at: { word: "c1-w1" }, duration: 2, layer: "front", zone: "top" }] }, registry],
     [
@@ -413,6 +464,36 @@ describe("validateEdl", () => {
       registry,
     );
     expect(rules(r)).toEqual([]);
+  });
+
+  it("accepts the transitions and the overlays the renderer draws, and moves captions above a bottom overlay", () => {
+    const r = run(
+      edl({
+        transitions: [
+          { between: ["s1", "s2"], type: "whip", duration: 0.25, direction: "up" },
+          { between: ["s2", "s3"], type: "fade", duration: 0.4 },
+        ],
+        captions: { enabled: true, style: "bold", maxWordsPerPage: 3, position: "auto", emphasis: [], overrides: [], hide: [] },
+        overlays: [tag("o1", { word: "c1-w1" }, { zone: "bottom" }), tag("o2", { segment: "s2" }, { zone: "top", cues: [{ word: "c1-w6" }] })],
+      }),
+      registry,
+    );
+    expect(rules(r)).toEqual([]);
+    const pages = r.resolved!.captions.pages;
+    expect(pages[0]!.position).toBe("center");
+    expect(pages[pages.length - 1]!.position).toBe("lower-third");
+  });
+
+  it("warns outside the director's ranges: transition duration, words and seconds of an overlay, an exit longer than the entrance", () => {
+    const r = run(
+      edl({
+        transitions: [{ between: ["s1", "s2"], type: "flash", duration: 0.4 }],
+        overlays: [tag("o1", { word: "c1-w1" }, { props: { text: "un deux trois quatre cinq six sept" }, duration: 5, exit: { duration: 0.5 } })],
+      }),
+      { ...registry, Tag: { ...registry.Tag!, layout: (_p: unknown, ctx: { area: { x: number; y: number; width: number; height: number } }) => ({ layout: null, box: ctx.area, texts: [] }) } },
+    );
+    expect(rules(r)).toEqual([]);
+    expect(rules(r, "warning")).toEqual(expect.arrayContaining(["transition-range", "overlay-word-count", "overlay-duration", "overlay-motion"]));
   });
 
   it("rejects captions outside the safe zone", () => {

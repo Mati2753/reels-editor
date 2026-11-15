@@ -3,7 +3,9 @@ import { overlays as overlayRegistry, type OverlayRegistry } from "../remotion/o
 import { IssueList, type Issue } from "./issues";
 import type { ResolvedEdl } from "./resolved";
 import { FPS, HEIGHT, resolveEdl, WIDTH, type Facts, type KeptWord, type ResolveEnv } from "./resolve";
-import { EdlSchema, type Edl } from "./schema";
+import { EdlSchema, type Edl, type TransitionType } from "./schema";
+import { wordCount } from "./textfit";
+import { inside, intersects, safeArea } from "./zones";
 
 /**
  * validate(json, facts): the zod schema, then the rules of docs/EDL.md ("Règles de
@@ -12,6 +14,26 @@ import { EdlSchema, type Edl } from "./schema";
 
 export const MIN_DURATION = 5;
 export const MAX_DURATION = 90;
+
+/** Longest transition accepted, seconds. */
+export const MAX_TRANSITION = 1;
+
+/** Durations docs/DIRECTOR.md gives each transition (seconds); outside them, a warning. */
+export const TRANSITION_RANGES: Readonly<Record<Exclude<TransitionType, "cut">, [number, number]>> = {
+  fade: [0.3, 0.5],
+  slide: [0.2, 0.3],
+  whip: [0.2, 0.3],
+  zoom: [0.15, 0.25],
+  flash: [0.1, 0.15],
+  glitch: [0.15, 0.2],
+};
+
+/** Transitions where a direction means something. */
+export const DIRECTED_TRANSITIONS: readonly TransitionType[] = ["slide", "whip"];
+
+/** docs/DIRECTOR.md, Dosage: words per overlay; Synchronisation: 1.2 to 4 s on screen. */
+export const MAX_OVERLAY_WORDS = 6;
+export const OVERLAY_SECONDS: [number, number] = [1.2, 4];
 
 export interface ValidateEnv extends ResolveEnv {
   overlays?: OverlayRegistry;
@@ -69,11 +91,16 @@ export function validateEdl(json: unknown, facts: Facts, env: ValidateEnv): Vali
     if (tr.type === "cut" && tr.duration !== 0) issues.error("transition-duration", `${path}.duration`, `a cut lasts 0 s`);
     if (tr.type !== "cut") {
       if (tr.duration <= 0) issues.error("transition-duration", `${path}.duration`, `a ${tr.type} transition needs a duration`);
-      issues.error("not-rendered-yet", path, `"${tr.type}" transitions are rendered from phase 3; use "cut" (or no entry) for now`);
+      else if (tr.duration > MAX_TRANSITION) issues.error("transition-too-long", `${path}.duration`, `a transition lasts ${MAX_TRANSITION} s at most (${tr.duration} s given)`);
+      else {
+        const [lo, hi] = TRANSITION_RANGES[tr.type];
+        if (tr.duration < lo - 1e-9 || tr.duration > hi + 1e-9) issues.warn("transition-range", `${path}.duration`, `docs/DIRECTOR.md gives a ${tr.type} ${lo}-${hi} s; ${tr.duration} s given`);
+      }
     }
+    if (tr.direction && !DIRECTED_TRANSITIONS.includes(tr.type)) issues.error("transition-direction", `${path}.direction`, `a ${tr.type} transition has no direction (only ${DIRECTED_TRANSITIONS.join(" and ")} do)`);
   });
 
-  // ---- overlays (schema of each component's props)
+  // ---- overlays (schema of each component's props; layout and placement after resolution)
   const overlayIds = new Set<string>();
   edl.overlays.forEach((ov, i) => {
     const path = `overlays[${i}]`;
@@ -90,7 +117,13 @@ export function validateEdl(json: unknown, facts: Facts, env: ValidateEnv): Vali
       return;
     }
     const props = def.props.safeParse(ov.props);
-    if (!props.success) for (const z of formatZodIssues(props.error)) issues.error("overlay-props", `${path}.props.${z.path}`, z.message);
+    if (!props.success) {
+      for (const z of formatZodIssues(props.error)) issues.error("overlay-props", `${path}.props.${z.path}`, z.message);
+      return;
+    }
+    const words = wordCount(def.text(props.data));
+    if (words > MAX_OVERLAY_WORDS) issues.warn("overlay-word-count", `${path}.props`, `${ov.component} "${ov.id}" shows ${words} words; docs/DIRECTOR.md says ${MAX_OVERLAY_WORDS} at most`);
+    if (ov.duration < OVERLAY_SECONDS[0] || ov.duration > OVERLAY_SECONDS[1]) issues.warn("overlay-duration", `${path}.duration`, `overlay "${ov.id}" lasts ${ov.duration} s; docs/DIRECTOR.md says ${OVERLAY_SECONDS[0]} to ${OVERLAY_SECONDS[1]} s`);
   });
 
   // ---- audio
@@ -109,6 +142,35 @@ export function validateEdl(json: unknown, facts: Facts, env: ValidateEnv): Vali
       const b = resolved.segments.find((s) => s.id === tr.between[1]);
       if (a && b && tr.durationInFrames > 0 && tr.durationInFrames >= Math.min(a.durationInFrames, b.durationInFrames)) {
         issues.error("transition-too-long", `transitions[${i}].duration`, `transition ${tr.between.join("→")} lasts as long as one of its segments or longer`);
+      }
+    });
+
+    // Windows of consecutive transitions never overlap: each half-window is shorter than
+    // half of the longer transition, itself shorter than the segment between them.
+
+    // Overlay motion: entrance and exit fit in the overlay; the exit is the shorter.
+    const safeRect = safeArea(resolved.brand.safeZone);
+    resolved.overlays.forEach((ov) => {
+      const i = edl.overlays.findIndex((o) => o.id === ov.id);
+      const path = `overlays[${i}]`;
+      const enter = ov.enter.kind === "none" ? 0 : ov.enter.durationInFrames;
+      const exit = ov.exit.kind === "none" ? 0 : ov.exit.durationInFrames;
+      if (enter + exit > ov.durationInFrames) issues.error("overlay-motion", path, `overlay "${ov.id}": entrance (${enter} frames) and exit (${exit} frames) are longer than the overlay (${ov.durationInFrames} frames)`);
+      else if (enter > 0 && exit > enter) issues.warn("overlay-motion", path, `overlay "${ov.id}": the exit (${exit} frames) is longer than the entrance (${enter} frames); docs/DIRECTOR.md wants it shorter`);
+      // The content stays in its zone (a full-screen overlay: above the captions' lower third).
+      if (ov.box.y < ov.area.y - 1 || ov.box.y + ov.box.height > ov.area.y + ov.area.height + 1) {
+        issues.error("overlay-zone-overflow", path, `overlay "${ov.id}" (${ov.component}) is ${Math.round(ov.box.height)} px tall and leaves its zone ${ov.zone} (y ${ov.area.y}-${ov.area.y + ov.area.height}): shorten its text`);
+      }
+      // Text never leaves the safe zone.
+      if (!inside(ov.box, safeRect)) {
+        issues.error("overlay-safe-zone", path, `overlay "${ov.id}" draws x ${Math.round(ov.box.x)}-${Math.round(ov.box.x + ov.box.width)}, y ${Math.round(ov.box.y)}-${Math.round(ov.box.y + ov.box.height)}: outside the safe zone x ${safeRect.x}-${safeRect.x + safeRect.width}, y ${safeRect.y}-${safeRect.y + safeRect.height}`);
+      }
+      // Captions never cover an overlay (they move with position "auto", or are hidden).
+      for (const p of resolved.captions.pages) {
+        if (p.fromFrame >= ov.fromFrame + ov.durationInFrames || ov.fromFrame >= p.fromFrame + p.durationInFrames) continue;
+        if (!intersects(p.box, ov.box)) continue;
+        const text = p.lines.map((l) => l.map((t) => t.text).join(" ")).join(" / ");
+        issues.error("caption-overlay-overlap", path, `caption page "${text}" at ${(p.fromFrame / FPS).toFixed(2)} s covers overlay "${ov.id}" (${ov.component}, zone ${ov.zone}): use captions.position "auto", another zone, or captions.hide`);
       }
     });
 

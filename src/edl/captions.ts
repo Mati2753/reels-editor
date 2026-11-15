@@ -1,7 +1,7 @@
 import { createTikTokStyleCaptions, type Caption } from "@remotion/captions";
 import type { BrandKit } from "../brand";
 import type { CaptionStyle } from "../remotion/captions/styles";
-import type { TextMeasurer } from "./measure";
+import type { TextMeasurer } from "./measure-core";
 
 /**
  * Caption pages: grouping of the kept words into pages and layout of each page in lines.

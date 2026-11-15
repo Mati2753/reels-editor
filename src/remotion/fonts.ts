@@ -2,14 +2,18 @@ import { loadFont } from "@remotion/fonts";
 import { useEffect, useState } from "react";
 import { useDelayRender } from "remotion";
 import type { BrandKit } from "../brand";
+import montserratBlack from "../../assets/fonts/Montserrat-Black.ttf";
 import montserratExtraBold from "../../assets/fonts/Montserrat-ExtraBold.ttf";
+import montserratSemiBold from "../../assets/fonts/Montserrat-SemiBold.ttf";
 
 /**
  * Font files shipped in assets/fonts/, bundled with the composition so rendering works
  * offline. A brand kit names its fonts by file; add new files here.
  */
-const FONT_URLS: Readonly<Record<string, string>> = {
+export const FONT_URLS: Readonly<Record<string, string>> = {
   "Montserrat-ExtraBold.ttf": montserratExtraBold,
+  "Montserrat-Black.ttf": montserratBlack,
+  "Montserrat-SemiBold.ttf": montserratSemiBold,
 };
 
 /** Loads the brand's fonts and holds the render until they are ready. */

@@ -2,6 +2,7 @@ import { Composition, type CalculateMetadataFunction } from "remotion";
 import { defaultBrand } from "../brand";
 import type { ResolvedEdl } from "../edl/resolved";
 import { boldStyle } from "./captions/styles";
+import { GalleryCompositions } from "./gallery/Gallery";
 import { Reel, type ReelProps } from "./Reel";
 
 /** Output format of every Reel, see CLAUDE.md. */
@@ -36,15 +37,18 @@ const calculateMetadata: CalculateMetadataFunction<ReelProps> = ({ props }) => (
 
 export const RemotionRoot: React.FC = () => {
   return (
-    <Composition
-      id="Reel"
-      component={Reel}
-      width={REEL_WIDTH}
-      height={REEL_HEIGHT}
-      fps={REEL_FPS}
-      durationInFrames={REEL_FPS}
-      defaultProps={{ edl: EMPTY_EDL }}
-      calculateMetadata={calculateMetadata}
-    />
+    <>
+      <Composition
+        id="Reel"
+        component={Reel}
+        width={REEL_WIDTH}
+        height={REEL_HEIGHT}
+        fps={REEL_FPS}
+        durationInFrames={REEL_FPS}
+        defaultProps={{ edl: EMPTY_EDL }}
+        calculateMetadata={calculateMetadata}
+      />
+      <GalleryCompositions />
+    </>
   );
 };

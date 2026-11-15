@@ -13,7 +13,8 @@
     "reels": "tsx src/cli/index.ts",
     "studio": "remotion studio",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "gallery": "tsx scripts/gallery.ts"
   },
   "dependencies": {
     "@remotion/bundler": "4.0.543",

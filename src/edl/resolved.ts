@@ -63,31 +63,82 @@ export interface ResolvedCaptionPage {
   box: { x: number; y: number; width: number; height: number };
 }
 
+/** Fixed framing of a transition side: the segment's framing at the junction. */
+export interface TransitionSideClip {
+  kind: "clip";
+  segment: string;
+  src: string;
+  sourceWidth: number;
+  sourceHeight: number;
+  /** Total frames of the source clip: source frames are clamped to [0, sourceFrames - 1]. */
+  sourceFrames: number;
+  /**
+   * Source frame shown on the first frame of the transition window; frame k of the window
+   * shows source frame clamp(firstSourceFrame + k × playbackRate). Before the cut the
+   * outgoing side is the segment itself; after it, its handle (the source just past `out`).
+   * The incoming side mirrors this (the source just before `in`). Handles are muted.
+   */
+  firstSourceFrame: number;
+  playbackRate: number;
+  /** The segment's framing; frame k of the window uses it at segment frame clamp(firstSegmentFrame + k, 0, segmentFrames - 1). */
+  framing: ResolvedFraming;
+  segmentFrames: number;
+  firstSegmentFrame: number;
+}
+
+export interface TransitionSideScene {
+  kind: "scene";
+  segment: string;
+  background: { kind: "color" | "gradient" | "image" | "video"; value: string };
+}
+
+export type TransitionSide = TransitionSideClip | TransitionSideScene;
+
 export interface ResolvedTransition {
   between: [string, string];
   type: "cut" | "fade" | "slide" | "whip" | "zoom" | "flash" | "glitch";
-  /** First frame of the second segment. */
+  /** First frame of the second segment: the cut, where the voice switches. */
   atFrame: number;
+  /** First frame of the transition window (atFrame - floor(duration / 2)). */
+  fromFrame: number;
   durationInFrames: number;
   direction?: "left" | "right" | "up" | "down";
+  outgoing: TransitionSide;
+  incoming: TransitionSide;
 }
 
 export interface ResolvedMotion {
-  kind: "fade" | "slide" | "pop" | "scale";
+  kind: "fade" | "slide" | "pop" | "scale" | "none";
   durationInFrames: number;
-  direction?: "left" | "right" | "up" | "down";
+  direction: "left" | "right" | "up" | "down";
+}
+
+export interface Box {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
 }
 
 export interface ResolvedOverlay {
   id: string;
   component: string;
+  /** Props as parsed by the component's schema (defaults applied). */
   props: Record<string, unknown>;
   fromFrame: number;
   durationInFrames: number;
   layer: "background" | "behind-captions" | "front";
   zone: "top" | "center" | "bottom" | "full";
-  enter?: ResolvedMotion;
-  exit?: ResolvedMotion;
+  /** Rectangle the content is laid out in (src/edl/zones.ts), px. */
+  area: Box;
+  /** Bounding box of what the component draws in its settled state, px (checked against the safe zone and the captions). */
+  box: Box;
+  enter: ResolvedMotion;
+  exit: ResolvedMotion;
+  /** Frames, from the overlay's first frame, of its cues (list items, steps...). */
+  cues: number[];
+  /** Component-specific layout computed with the real font metrics (src/remotion/overlays/<Name>.tsx). */
+  layout: unknown;
 }
 
 export interface ResolvedAudio {

@@ -9,8 +9,9 @@
 | Transcription mot à mot | **faster-whisper** (Whisper sur CTranslate2, Python), appelé par `src/pipeline/whisper.py` | Local, gratuit, horodatage par mot ; `pip install` sans compilateur sur Mac, Windows et Linux ; modèles téléchargés depuis Hugging Face. Choix et mesures : section « Transcribe » |
 | Sous-titres | `@remotion/captions` | Regroupement des mots en pages (à partir des coupures décidées par `resolve`) |
 | Rendu programmatique | `@remotion/bundler` + `@remotion/renderer` (API Node) | `preview` et `render` sans passer par le CLI Remotion |
-| Police | Montserrat ExtraBold, `assets/fonts/` (SIL OFL 1.1, licence à côté) | Embarquée dans le bundle : le rendu marche hors ligne |
-| Mesure du texte | `opentype.js` | Largeur des mots avec la police réelle, pour couper les lignes et vérifier la zone sûre avant le rendu |
+| Police | Montserrat ExtraBold (sous-titres), Black (titres, chiffres) et SemiBold (texte secondaire), `assets/fonts/` (SIL OFL 1.1, licence à côté) | Embarquée dans le bundle : le rendu marche hors ligne |
+| Mesure du texte | `opentype.js` | Largeur des mots avec la police réelle, pour couper les lignes des sous-titres et des overlays et vérifier la zone sûre avant le rendu (dans Node, et dans le navigateur pour la galerie du Studio) |
+| Animation | `spring`, `interpolate`, `Easing` de `remotion` | Entrées sur ressort amorti, sorties accélérées ; aucun mouvement linéaire |
 | Schéma et validation | **zod** | Un seul schéma pour valider et typer l'EDL |
 | CLI | `tsx` + `commander` | Simple |
 | Tests | `vitest` | Tests unitaires sur `resolve` et `validate` |
@@ -143,7 +144,7 @@ Le directeur produit `edl.json` en suivant `docs/DIRECTOR.md`. Contrat : `docs/E
 ### 5. Validation, aperçu, rendu
 
 - `validate` (`src/edl/validate.ts`) : schéma zod, puis résolution et règles (`docs/EDL.md`, « Règles de validation ») : pas de bord de segment dans un mot, ancres sur des mots conservés, sous-titres dans la zone sûre, durée dans les bornes, et refus de ce que le rendu ne sait pas encore faire. Imprime erreurs et avertissements avec leur règle et leur chemin dans l'EDL.
-- `resolve` (`src/edl/resolve.ts`) : secondes ──► images, ancres, mots conservés, pages de sous-titres mises en page avec la police réelle. Le résultat est écrit pour relecture dans `work/render/<nom>.resolved.json`.
+- `resolve` (`src/edl/resolve.ts`) : secondes ──► images, ancres, mots conservés, pages de sous-titres mises en page avec la police réelle, fenêtres des transitions et images sources de chaque côté, overlays (mouvement, cues, zone, mise en page du composant). Le résultat est écrit pour relecture dans `work/render/<nom>.resolved.json`.
 - `preview` (`src/render/preview.ts`) : rend une image fixe à chaque événement : début de chaque segment (2 images après, là où se voit le punch-in), fin de chaque zoom progressif, première page de sous-titres, chaque mot en emphase ou corrigé pendant qu'il est prononcé, la plus grande page (zone sûre), dernière image ; `--at <s>` en ajoute. `out/preview/index.json` dit pourquoi chaque image a été prise. Le directeur les regarde et corrige l'EDL avant le rendu complet. C'est la boucle de qualité.
 - `render` (`src/render/render.ts`) : Remotion rend l'EDL résolu (H.264 CRF 18, AAC) ; ffmpeg normalise la voix à `audio.voice.targetLufs` (loudnorm EBU R128 en deux passes, gain linéaire quand la crête le permet, crête vraie −1 dBTP), l'image est copiée sans réencodage ; puis le fichier est vérifié (1080×1920, 30 fps, nombre d'images de l'EDL résolu).
 - Les deux commandes servent les clips au bundle par un lien symbolique `work/render/public/media/<clip>` ──► `work/<clip>/` (le serveur de fichiers de Remotion refuse un lien vers un fichier, pas vers un dossier), sans copier de vidéo. Le bundle est dans `work/render/bundle/`.
@@ -164,21 +165,26 @@ src/
     resolved.ts        type de l'EDL résolu (props de la composition)
     framing.ts         géométrie du recadrage (partagée par resolve et VideoTrack)
     captions.ts        regroupement des mots en pages et en lignes
-    measure.ts         mesure du texte avec la police du brand kit
+    measure.ts         mesure du texte avec la police du brand kit (Node ; measure-core.ts : le cœur, aussi utilisé dans le navigateur)
+    textfit.ts         ajustement d'un texte dans une boîte (taille, lignes) pour les overlays
+    zones.ts           zones des overlays (top, center, bottom, full) tirées de la zone sûre
   render/              validate / preview / render côté Node (bundle, navigateur, loudnorm)
   remotion/
     index.ts           point d'entrée Remotion (registerRoot)
     Root.tsx           composition "Reel", props = EDL résolu
-    Reel.tsx           empile les pistes : vidéo, overlays, sous-titres, audio
-    tracks/            VideoTrack, CaptionTrack (OverlayTrack, AudioTrack : phases 3 et 5)
-    overlays/          bibliothèque d'animations (un fichier par composant ; index.ts : registre)
-    transitions/       un fichier par transition
+    Reel.tsx           empile les pistes : vidéo (et voix), transitions, overlays, sous-titres
+    tracks/            VideoTrack, TransitionTrack, OverlayTrack, CaptionTrack (AudioTrack : phase 5)
+    overlays/          bibliothèque d'animations (un fichier par composant ; index.ts : registre ;
+                       types.ts : définition d'un composant ; motion.ts : entrées et sorties ; ui.tsx : primitives)
+    transitions/       un fichier par transition (index.ts : registre)
+    gallery/           galerie du Studio : props d'exemple (samples.ts) et compositions (Gallery.tsx)
     captions/          styles de sous-titres (styles.ts : données ; CaptionPage.tsx : dessin)
     fonts.ts           chargement des polices du brand kit
   brand/               brand kits (couleurs, polices, marges de zone sûre)
 assets/
   sfx/  music/  fonts/ (police + licence)
 examples/demo/         EDL écrites à la main sur le footage synthétique : edl.json (référence pour le directeur), sync-framing.edl.json (montage de contrôle)
+scripts/gallery.ts     planches-contacts de la galerie (npm run gallery ──► out/gallery/)
 scripts/synthetic/     footage de test à vérité terrain connue + vérifications (check.ts : faits ; check-render.ts : MP4 rendu)
 requirements.txt       dépendances Python (transcription)
 projects/<slug>/       non commité
@@ -199,8 +205,13 @@ Un même Reel peut mélanger les deux. Le rendu ne distingue pas les modes : il 
 
 ## Extension : ajouter une animation
 
-1. Créer `src/remotion/overlays/<Nom>.tsx` avec un schéma zod de props.
+1. Créer `src/remotion/overlays/<Nom>.tsx` : `defineOverlay({ props, zones, enter, exit, text, cueCount, layout, render })` (`types.ts`). `props` est le schéma zod ; `layout` compose le texte avec `fitText` (police réelle, taille réduite puis lignes) dans la zone reçue et rend la boîte occupée ; `render` dessine cette mise en page à une image donnée, avec les couleurs, polices et formes du brand kit seulement. L'entrée et la sortie de l'ensemble sont appliquées par `OverlayTrack` ; le composant n'anime que ses éléments internes (avec `itemProgress`, `landing`, jamais linéairement).
 2. L'enregistrer dans `src/remotion/overlays/index.ts`.
-3. L'ajouter au catalogue de `docs/DIRECTOR.md` avec « quand l'utiliser ».
+3. Ajouter un exemple court et un exemple à la limite dans `src/remotion/gallery/samples.ts` (les tests vérifient que chaque composant en a un et qu'il tient dans chacune de ses zones), lancer `npm run gallery` et regarder `out/gallery/overlay-<Nom>.jpg`.
+4. L'ajouter au catalogue de `docs/DIRECTOR.md` avec ses props et « quand l'utiliser ».
 
-Sans l'étape 3, le directeur ne sait pas que l'animation existe.
+Sans l'étape 4, le directeur ne sait pas que l'animation existe.
+
+## Galerie
+
+`npm run studio`, dossier « Gallery » : une composition par overlay, zone et longueur de texte (court sur fond sombre, à la limite sur fond clair), une par transition, et `GallerySheet` (planche de plusieurs exemples à un instant donné). Chaque exemple est une vraie EDL (scène en dégradé + overlay ou transition) résolue dans le navigateur par le même `resolve` que `reels render`, les polices mesurées avec les mêmes fichiers. `npm run gallery` valide d'abord chaque exemple dans Node avec les règles de `validate`, puis rend dans `out/gallery/` : `sheet-settled.jpg` et `sheet-settled-long.jpg` (tous les overlays posés), `overlay-<Nom>.jpg` (chaque zone, texte court et à la limite, début d'entrée, milieu d'entrée, posé, posé sur l'autre fond, milieu de sortie) et `transitions.jpg` (début, quart, avant la coupe, coupe, trois quarts, fin). `--guides` trace la zone sûre et les zones ; `--only A,B` limite aux composants nommés (`transitions` pour les transitions).

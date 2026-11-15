@@ -2,7 +2,7 @@
 
 `projects/<slug>/edl.json` décrit entièrement un Reel. Le directeur l'écrit, `validate` le vérifie, le rendu l'exécute. La source de vérité est `src/edl/schema.ts` (zod) ; ce document en explique le sens et change avec lui.
 
-Exemple de référence, écrit à la main sur le footage synthétique (`scripts/synthetic/`) : `examples/demo/edl.json` (coupes de silences, de mots de remplissage, d'une répétition et d'une prise ratée ; échelles alternées ; zoom progressif ; emphase ; correction).
+Exemples de référence, écrits à la main sur le footage synthétique (`scripts/synthetic/`) : `examples/demo/edl.json` (coupes de silences, de mots de remplissage, d'une répétition et d'une prise ratée ; échelles alternées ; zoom progressif ; emphase ; correction) et `examples/demo/motion.edl.json` (le même montage avec transitions et overlays).
 
 ## Vue d'ensemble
 
@@ -77,31 +77,69 @@ Un changement de `scale` entre deux segments consécutifs est un « punch-in » 
 type Transition = {
   between: [string, string]      // ids de deux segments consécutifs
   type: "cut" | "fade" | "slide" | "whip" | "zoom" | "flash" | "glitch"
-  duration: number               // 0 pour "cut"
-  direction?: "left" | "right" | "up" | "down"
+  duration: number               // 0 pour "cut" ; 1 s au plus
+  direction?: "left" | "right" | "up" | "down"   // slide et whip seulement : vers où l'image part ("left" par défaut)
 }
 ```
 
-Sans entrée, la jonction est une coupe franche. Les transitions autres que `cut` sont rendues à partir de la phase 3 ; d'ici là `validate` les refuse (`not-rendered-yet`) plutôt que de les rendre en coupe franche sans le dire.
+Sans entrée, la jonction est une coupe franche.
+
+**Une transition ne chevauche pas les segments.** Contrairement à `<TransitionSeries>` de `@remotion/transitions`, qui superpose la fin du premier segment et le début du second (la vidéo raccourcit et les deux voix jouent ensemble pendant la transition), ici :
+
+- La **durée totale** reste la somme des segments ; une transition n'enlève ni n'ajoute rien. Les **ancres** (mots, segments) ne bougent pas.
+- La **fenêtre** de la transition est centrée sur la coupe : elle commence `floor(n / 2)` images avant la première image du second segment (n = `duration` en images) et dure n images. `resolve` la calcule (`fromFrame`, `atFrame` = la coupe, `durationInFrames`).
+- **Image** : pendant la fenêtre, chaque segment est prolongé par sa propre source, muette : après la coupe, le premier montre les images qui suivent son `out` ; avant la coupe, le second montre celles qui précèdent son `in` (même cadrage, même vitesse). Au bord d'un clip, la dernière (ou la première) image est figée. Le directeur vérifie à l'aperçu que ces quelques images de part et d'autre de la coupe ne montrent rien d'indésirable (un clap, un geste coupé) ; sinon il prend une transition plus courte ou une coupe franche.
+- **Voix** : coupe franche à `atFrame`, exactement comme sans transition. Elle n'est ni tronquée ni doublée (la piste vidéo joue le son de chaque segment sur ses seules images ; la transition est dessinée par-dessus, sans son).
+
+| Type | Ce qu'on voit | Direction |
+|---|---|---|
+| `fade` | fondu enchaîné (courbe en S) | non |
+| `slide` | poussée : les deux images glissent ensemble vers `direction` | oui |
+| `whip` | poussée très rapide avec flou de bougé dans l'axe du mouvement | oui |
+| `zoom` | l'image sortante fonce vers le spectateur (agrandissement, flou), l'entrante arrive d'un gros plan et se pose | non |
+| `flash` | l'image brûle vers la couleur `flash` du brand kit, pic sur la coupe, puis l'image entrante en sort | non |
+| `glitch` | bandes décalées, couleurs séparées, barres de couleur de marque autour de la coupe | non |
+
+Les durées conseillées sont dans `DIRECTOR.md` (section 4) ; `validate` avertit en dehors (`transition-range`).
 
 ## Overlays
 
 ```ts
 type Overlay = {
   id: string
-  component: string        // nom dans src/remotion/overlays/index.ts
-  props: Record<string, unknown>   // validées par le schéma du composant
-  at: Anchor
-  duration: number
+  component: string        // nom dans src/remotion/overlays/index.ts (catalogue : DIRECTOR.md, section 5)
+  props: Record<string, unknown>   // validées par le schéma zod du composant
+  at: Anchor               // première image visible de l'overlay
+  duration: number         // secondes à l'écran, entrée et sortie comprises
   layer: "background" | "behind-captions" | "front"
   zone: "top" | "center" | "bottom" | "full"
-  enter?: Motion; exit?: Motion
+  enter?: Motion; exit?: Motion   // par défaut, ceux du composant
+  cues?: Anchor[]          // moments internes : un par item, étape, message, barre (voir le composant)
 }
 
-type Motion = { kind: "fade" | "slide" | "pop" | "scale"; duration: number; direction?: "left" | "right" | "up" | "down" }
+type Motion = {
+  kind?: "fade" | "slide" | "pop" | "scale" | "none"
+  duration?: number        // secondes, 1 au plus
+  direction?: "left" | "right" | "up" | "down"   // slide : d'où il vient (enter), vers où il part (exit)
+}
 ```
 
-`zone: "full"` remplace l'image (b-roll ou animation plein écran) pendant que la voix continue. Le catalogue de composants arrive en phase 3 (la forme de `Motion` y sera confirmée) ; avant, aucun composant n'est enregistré et `validate` refuse tout overlay (`unknown-overlay`).
+**Mouvement.** Chaque champ de `Motion` est facultatif : le composant fournit ses valeurs par défaut (entrée d'environ 10 images, sortie d'environ 5). Entrées sur un ressort amorti (`pop` dépasse visiblement sa taille puis revient, `scale` et `slide` à peine), sorties accélérées (courbe ease-in), jamais linéaires. `fade` : opacité seule ; `none` : apparaît et disparaît d'un coup. L'entrée commence sur l'image de l'ancre : c'est déjà la première image visible.
+
+**Zones.** Rectangles de l'image 1080×1920 tirés des marges du brand kit (`src/edl/zones.ts`), centrés horizontalement (x 130–950 avec le kit par défaut) :
+
+| Zone | Hauteur | Usage |
+|---|---|---|
+| `top` | zone sûre haute (250) – 680 | au-dessus du visage en plan face caméra |
+| `center` | 680 – 1180 | sur le buste ; les sous-titres restent dessous |
+| `bottom` | 1060 – zone sûre basse (1500) | les sous-titres `auto` remontent au centre |
+| `full` | tout l'écran est couvert par le fond du brand kit ; le contenu tient entre 250 et 1180, ou jusqu'à 1500 si aucun sous-titre n'est montré pendant l'overlay | remplace l'image pendant que la voix continue |
+
+Chaque composant accepte certaines zones seulement (`overlay-zone`). Il compose son texte avec la police réelle du brand kit dans la zone : réduction de la taille, puis retour à la ligne, jusqu'à un minimum propre au composant. `resolve` fait cette mise en page (la seule mesure du texte, avec les fichiers de police) et la transmet au composant ; `validate` signale un texte réduit (`overlay-text-shrunk`), un texte qui ne tient pas même réduit (`overlay-text-overflow`) ou un contenu qui sort de sa zone (`overlay-zone-overflow`).
+
+**Couches.** De bas en haut : vidéo, transitions, overlays `background`, overlays `behind-captions`, sous-titres, overlays `front`.
+
+**Cues.** Un composant à éléments successifs (liste, étapes, messages, barres) fait apparaître l'élément k sur `cues[k]` ; sans cues, il les échelonne lui-même juste après son entrée. Chaque cue tombe pendant l'overlay (`overlay-cue-range`), et il n'y en a pas plus que d'éléments (`overlay-cues`).
 
 ## Sous-titres
 
@@ -123,7 +161,7 @@ Les pages de sous-titres ne sont pas écrites dans l'EDL : `resolve` les dérive
 - **Pages.** Dans l'ordre de sortie, au plus `maxWordsPerPage` mots ; nouvelle page après une ponctuation de fin de phrase ou de proposition (`. ! ? … , ; :`), après une pause d'au moins `pageBreakGapSeconds` (style), à l'entrée et à la sortie d'un `hide`, et quand le mot suivant ne tient plus dans la largeur sûre. Une page ne finit pas sur un article, un déterminant, une préposition, un pronom sujet ou un nombre quand ce mot peut passer sur la page suivante (« un petit micro » reste groupé, « 30 secondes » aussi). Le regroupement final est fait par `createTikTokStyleCaptions` de `@remotion/captions` à partir de ces coupures.
 - **Lignes.** Une ligne de préférence, deux au plus, environ 18 caractères par ligne, mesurées avec la police réelle du brand kit (`src/edl/measure.ts`). Si un seul mot dépasse la largeur sûre, la page est composée plus petit (jusqu'à `minFontSize`) et `validate` le signale (`caption-shrunk`) ; s'il ne tient toujours pas, c'est une erreur (`caption-overflow`).
 - **Temps.** Une page apparaît au début de son premier mot et reste jusqu'au début de la page suivante, au plus `lingerSeconds` après la fin de son dernier mot, jamais dans un `hide`. Le mot actif est surligné du début de ce mot au début du suivant (le dernier, jusqu'à la fin de la page).
-- **Position.** `auto` vaut `lower-third`, sauf pendant un overlay de zone `bottom` ou `full`, où elle vaut `center`. La position verticale de chaque valeur est dans le style ; le bloc est centré horizontalement sur l'image.
+- **Position.** `auto` vaut `lower-third`, sauf pendant un overlay de zone `bottom`, où elle vaut `center` (au-dessus de lui). Un overlay `full` garde son contenu au-dessus du tiers inférieur : les sous-titres y restent. La position verticale de chaque valeur est dans le style ; le bloc est centré horizontalement sur l'image. Aucune page ne recouvre un overlay (`caption-overlay-overlap`) : sinon, changer de zone, passer en `auto` ou masquer les sous-titres (`hide`).
 - **Emphase.** `color` : couleur d'accent du brand kit ; `scale` : mot plus grand (`emphasisScale` du style) ; `box` : mot sur un fond d'accent.
 
 ## Audio
@@ -145,6 +183,8 @@ La voix est le son des clips, normalisé par `reels render` à `targetLufs` (EBU
 - **Pas de dérive.** Les bornes des segments sont placées sur le temps de sortie cumulé exact : image = arrondi(secondes × 30). Chaque borne est à moins d'une demi-image de son temps exact, quel que soit le nombre de segments avant elle ; la durée totale est la somme exacte des segments arrondie une seule fois.
 - **Source jouée.** Un segment `clip` commence sur l'image source arrondi(`in` × 30) (ou juste après le segment précédent s'il le continue dans la source) et en joue `durationInFrames × speed` images. C'est cet intervalle réellement joué, et non `in`/`out` tels qu'écrits, qui sert à décider des mots conservés et des mots coupés.
 - **Ancres.** Mot : début (ou fin) de sa première occurrence en sortie, plus `offset`. Segment : première image du segment, plus `offset`.
+- **Transitions.** Fenêtre centrée sur la coupe et images sources de chaque côté (voir « Transitions »).
+- **Overlays.** Première image, durée, entrée et sortie (valeurs du composant complétées), cues en images depuis le début de l'overlay, zone, et mise en page du composant avec la police réelle.
 
 ## Règles de validation
 
@@ -156,15 +196,18 @@ Erreurs :
 - Aucun bord de segment à l'intérieur d'un mot : un bord qui entre de plus de 0,02 s dans un mot le tronque [`cut-inside-word`] (couper dans le silence avant ou après).
 - Toute ancre pointe vers un mot conservé [`anchor-cut-word`], un mot existant [`anchor-unknown-word`] ou un segment existant [`anchor-unknown-segment`], et tombe dans le Reel [`anchor-out-of-range`] ; un `hide` finit après son début [`hide-empty`].
 - Emphase et corrections désignent des mots existants [`caption-unknown-word`].
-- Deux overlays de même `zone` et de même `layer` ne se chevauchent pas [`overlay-overlap`] ; composant enregistré [`unknown-overlay`] ; props conformes à son schéma [`overlay-props`].
-- Une transition relie deux segments existants [`transition-unknown-segment`] et réellement consécutifs [`transition-not-consecutive`], une seule par jonction [`transition-duplicate`], dure 0 pour `cut` et plus de 0 sinon [`transition-duration`], et moins que le plus court des deux segments [`transition-too-long`].
+- Deux overlays de même `zone` et de même `layer` ne se chevauchent pas [`overlay-overlap`] ; composant enregistré [`unknown-overlay`] ; props conformes à son schéma [`overlay-props`] ; zone acceptée par le composant [`overlay-zone`] ; entrée et sortie plus courtes que l'overlay [`overlay-motion`] ; cues dans l'overlay [`overlay-cue-range`] et pas plus que d'éléments [`overlay-cues`].
+- Texte d'overlay qui ne tient pas, même réduit au minimum du composant [`overlay-text-overflow`] ; contenu qui sort de sa zone [`overlay-zone-overflow`] ou de la zone sûre [`overlay-safe-zone`] ; page de sous-titres qui recouvre un overlay [`caption-overlay-overlap`].
+- Une transition relie deux segments existants [`transition-unknown-segment`] et réellement consécutifs [`transition-not-consecutive`], une seule par jonction [`transition-duplicate`], dure 0 pour `cut` et plus de 0 sinon [`transition-duration`], au plus 1 s et moins que le plus court des deux segments [`transition-too-long`] (deux fenêtres voisines ne peuvent donc pas se chevaucher), et n'a de `direction` que pour `slide` et `whip` [`transition-direction`].
 - Aucun texte hors de la zone sûre (voir `DIRECTOR.md`) : la boîte de chaque page, contour et grossissement du mot actif compris, reste dans les marges du brand kit [`caption-safe-zone`] ; aucun mot trop large même réduit [`caption-overflow`].
 - Brand kit et style de sous-titres existants [`unknown-brand`, `unknown-caption-style`].
 - Durée totale comprise entre 5 s et 90 s [`duration`].
-- Ce que le rendu ne sait pas encore faire est refusé plutôt qu'ignoré [`not-rendered-yet`] : transitions autres que `cut` (phase 3), musique, effets sonores, réduction de bruit (phase 5), fonds de scène `image` et `video` (phase 6).
+- Ce que le rendu ne sait pas encore faire est refusé plutôt qu'ignoré [`not-rendered-yet`] : musique, effets sonores, réduction de bruit (phase 5), fonds de scène `image` et `video` (phase 6).
 
 Avertissements :
 
 - Cadrage décalé pour rester dans l'image source [`framing-shifted`] ; échelle au-delà du maximum conseillé, 1,4 sur une source 1080p, 1,8 en 4K [`framing-scale`].
 - Page de sous-titres composée plus petit que le style [`caption-shrunk`].
 - Emphase ou correction sur un mot coupé, donc sans effet [`caption-cut-word`] ; mot joué par deux segments [`word-kept-twice`].
+- Durée de transition hors de celles de `DIRECTOR.md` [`transition-range`].
+- Overlay : texte composé plus petit que la taille voulue par le composant [`overlay-text-shrunk`], plus de 6 mots [`overlay-word-count`], moins de 1,2 s ou plus de 4 s à l'écran [`overlay-duration`], sortie plus longue que l'entrée [`overlay-motion`].
