@@ -7,7 +7,10 @@
 | Rendu vidéo | **Remotion 4** (React) | Animations écrites en code, donc générables et modifiables par Claude ; rendu image par image déterministe |
 | Découpe, normalisation, audio | **ffmpeg / ffprobe** | Standard, déjà installé |
 | Transcription mot à mot | **faster-whisper** (Whisper sur CTranslate2, Python), appelé par `src/pipeline/whisper.py` | Local, gratuit, horodatage par mot ; `pip install` sans compilateur sur Mac, Windows et Linux ; modèles téléchargés depuis Hugging Face. Choix et mesures : section « Transcribe » |
-| Sous-titres | `@remotion/captions` | Regroupement des mots en pages |
+| Sous-titres | `@remotion/captions` | Regroupement des mots en pages (à partir des coupures décidées par `resolve`) |
+| Rendu programmatique | `@remotion/bundler` + `@remotion/renderer` (API Node) | `preview` et `render` sans passer par le CLI Remotion |
+| Police | Montserrat ExtraBold, `assets/fonts/` (SIL OFL 1.1, licence à côté) | Embarquée dans le bundle : le rendu marche hors ligne |
+| Mesure du texte | `opentype.js` | Largeur des mots avec la police réelle, pour couper les lignes et vérifier la zone sûre avant le rendu |
 | Schéma et validation | **zod** | Un seul schéma pour valider et typer l'EDL |
 | CLI | `tsx` + `commander` | Simple |
 | Tests | `vitest` | Tests unitaires sur `resolve` et `validate` |
@@ -16,7 +19,9 @@ Vérifier les versions actuelles des paquets au moment de l'installation plutôt
 
 Toutes les dépendances `remotion` et `@remotion/*` sont épinglées à la même version exacte. Commandes de base : `npm run reels -- <commande>` (ou `npx reels <commande>`), `npm run studio`, `npm test`, `npm run typecheck`.
 
-**Côté Python** (transcription uniquement) : `python3 -m venv .venv && .venv/bin/pip install -r requirements.txt` (Windows : `.venv\Scripts\pip`). `reels transcribe` utilise `REELS_PYTHON` s'il est défini, sinon `.venv/`, sinon `python3`. `.venv/` n'est pas commité. Sur une machine sans Chrome téléchargé par Remotion, passer `--browser-executable=<chemin>` aux commandes `remotion still` / `remotion render`.
+**Côté Python** (transcription uniquement) : `python3 -m venv .venv && .venv/bin/pip install -r requirements.txt` (Windows : `.venv\Scripts\pip`). `reels transcribe` utilise `REELS_PYTHON` s'il est défini, sinon `.venv/`, sinon `python3`. `.venv/` n'est pas commité.
+
+**Navigateur** : `preview` et `render` utilisent le Chrome Headless Shell que Remotion télécharge au premier usage. Pour utiliser un Chrome déjà installé (machine hors ligne, conteneur), définir `REELS_BROWSER_EXECUTABLE=<chemin>` (lu aussi par `remotion.config.ts` pour le Studio) ou passer `--browser-executable <chemin>`.
 
 **Licence Remotion** : gratuit pour les particuliers et les sociétés de 3 personnes ou moins ; au-delà, une licence société est requise. À vérifier avant un usage commercial.
 
@@ -31,8 +36,9 @@ reels transcribe <slug>     work/<clip>/audio.wav ──► work/transcript.json
 reels analyze <slug>        ──► work/analysis.json + work/frames/*.jpg
         ── le directeur lit analysis.json + frames, écrit edl.json ──
 reels validate <slug>       vérifie edl.json (schéma + règles)
-reels preview <slug>        rend des images fixes aux instants clés ──► out/preview/*.jpg
+reels preview <slug>        rend des images fixes aux instants clés ──► out/preview/*.jpg + index.json
 reels render <slug>         ──► out/<slug>.mp4
+                            (--edl <fichier> : une autre EDL du même footage ──► out/<nom>.mp4, out/preview-<nom>/)
 ```
 
 ### Idempotence
@@ -46,6 +52,8 @@ Chaque étape note dans `work/.state/<étape>.json` l'empreinte (sha256) de tout
 | analyze, mesures lourdes | un clip | `source.mp4` / `audio.wav` du clip, seuil de plans, seuil de silence forcé (cache `work/<clip>/media.json`) |
 | analyze, règles sur les mots | le projet | `transcript.json`, les clips, les paramètres |
 | analyze, images clés | une image | son instant ; toutes les images d'un clip si `source.mp4` change |
+| preview | une image fixe | l'EDL résolu, les clips (empreinte de `probe.json`), le code du rendu (`src/remotion/`, `src/brand/`, `framing.ts`, polices, `package-lock.json`) |
+| render | le MP4 | les mêmes dépendances que preview |
 
 ### 1. Ingest
 
@@ -126,7 +134,7 @@ Le directeur regarde les images clés lui-même pour comprendre la scène (cadra
 
 ### Footage de test
 
-`scripts/synthetic/generate.py` fabrique un footage français dont on connaît la vérité terrain (voix Piper, phrases placées à des instants connus, silences de durée connue, « euh », répétition, phrase recommencée, changement de plan, claps image + son ; un clip en fréquence d'images variable, un clip à 25 fps avec rotation 90°) et l'écrit dans `projects/<slug>/raw/` avec `projects/<slug>/truth.json`. `scripts/synthetic/check.ts` compare ensuite `probe.json`, `transcript.json` et `analysis.json` à cette vérité. Mode d'emploi en tête de chaque fichier. Une voix de synthèse est plus facile à transcrire qu'une vraie voix : ces mesures ne garantissent pas la précision sur un vrai tournage.
+`scripts/synthetic/generate.py` fabrique un footage français dont on connaît la vérité terrain (voix Piper, phrases placées à des instants connus, silences de durée connue, « euh », répétition, phrase recommencée, changement de plan, claps image + son, trois cibles de cadrage à des positions connues ; un clip en fréquence d'images variable, un clip à 25 fps avec rotation 90°) et l'écrit dans `projects/<slug>/raw/` avec `projects/<slug>/truth.json`. `scripts/synthetic/check.ts` compare ensuite `probe.json`, `transcript.json` et `analysis.json` à cette vérité. `scripts/synthetic/check-render.ts` mesure un MP4 rendu : durée, loudness, mots coupés, place du son de chaque segment (corrélation avec la source), niveau aux jonctions, retranscription, mot surligné sur chaque image contre le mot prononcé, synchronisation flash / bip, position des cibles contre la géométrie du cadrage. Mode d'emploi en tête de chaque fichier. Une voix de synthèse est plus facile à transcrire qu'une vraie voix : ces mesures ne garantissent pas la précision sur un vrai tournage.
 
 ### 4. Direction
 
@@ -134,9 +142,11 @@ Le directeur produit `edl.json` en suivant `docs/DIRECTOR.md`. Contrat : `docs/E
 
 ### 5. Validation, aperçu, rendu
 
-- `validate` : schéma zod + règles (pas de chevauchement de segments, ancres existantes, sous-titres dans la zone sûre, durée totale dans les bornes).
-- `preview` : rend une image fixe à chaque événement (entrée d'animation, transition, première page de sous-titres). Le directeur les regarde et corrige l'EDL avant le rendu complet. C'est la boucle de qualité.
-- `render` : Remotion lit l'EDL résolu, ffmpeg finalise l'audio (normalisation −14 LUFS).
+- `validate` (`src/edl/validate.ts`) : schéma zod, puis résolution et règles (`docs/EDL.md`, « Règles de validation ») : pas de bord de segment dans un mot, ancres sur des mots conservés, sous-titres dans la zone sûre, durée dans les bornes, et refus de ce que le rendu ne sait pas encore faire. Imprime erreurs et avertissements avec leur règle et leur chemin dans l'EDL.
+- `resolve` (`src/edl/resolve.ts`) : secondes ──► images, ancres, mots conservés, pages de sous-titres mises en page avec la police réelle. Le résultat est écrit pour relecture dans `work/render/<nom>.resolved.json`.
+- `preview` (`src/render/preview.ts`) : rend une image fixe à chaque événement : début de chaque segment (2 images après, là où se voit le punch-in), fin de chaque zoom progressif, première page de sous-titres, chaque mot en emphase ou corrigé pendant qu'il est prononcé, la plus grande page (zone sûre), dernière image ; `--at <s>` en ajoute. `out/preview/index.json` dit pourquoi chaque image a été prise. Le directeur les regarde et corrige l'EDL avant le rendu complet. C'est la boucle de qualité.
+- `render` (`src/render/render.ts`) : Remotion rend l'EDL résolu (H.264 CRF 18, AAC) ; ffmpeg normalise la voix à `audio.voice.targetLufs` (loudnorm EBU R128 en deux passes, gain linéaire quand la crête le permet, crête vraie −1 dBTP), l'image est copiée sans réencodage ; puis le fichier est vérifié (1080×1920, 30 fps, nombre d'images de l'EDL résolu).
+- Les deux commandes servent les clips au bundle par un lien symbolique `work/render/public/media/<clip>` ──► `work/<clip>/` (le serveur de fichiers de Remotion refuse un lien vers un fichier, pas vers un dossier), sans copier de vidéo. Le bundle est dans `work/render/bundle/`.
 
 ## Arborescence
 
@@ -149,24 +159,33 @@ src/
     analysis/          règles pures (mots, phrases, silences, recalage) et mesures ffmpeg
   edl/
     schema.ts          schéma zod, source de vérité
-    resolve.ts         secondes source ──► images de sortie, résolution des ancres
+    resolve.ts         secondes source ──► images de sortie, résolution des ancres, pages de sous-titres
     validate.ts        règles au-delà du schéma
+    resolved.ts        type de l'EDL résolu (props de la composition)
+    framing.ts         géométrie du recadrage (partagée par resolve et VideoTrack)
+    captions.ts        regroupement des mots en pages et en lignes
+    measure.ts         mesure du texte avec la police du brand kit
+  render/              validate / preview / render côté Node (bundle, navigateur, loudnorm)
   remotion/
     index.ts           point d'entrée Remotion (registerRoot)
     Root.tsx           composition "Reel", props = EDL résolu
     Reel.tsx           empile les pistes : vidéo, overlays, sous-titres, audio
-    tracks/            VideoTrack, OverlayTrack, CaptionTrack, AudioTrack
-    overlays/          bibliothèque d'animations (un fichier par composant)
+    tracks/            VideoTrack, CaptionTrack (OverlayTrack, AudioTrack : phases 3 et 5)
+    overlays/          bibliothèque d'animations (un fichier par composant ; index.ts : registre)
     transitions/       un fichier par transition
-    captions/          styles de sous-titres
-  brand/               brand kits (couleurs, polices, logo)
+    captions/          styles de sous-titres (styles.ts : données ; CaptionPage.tsx : dessin)
+    fonts.ts           chargement des polices du brand kit
+  brand/               brand kits (couleurs, polices, marges de zone sûre)
 assets/
-  sfx/  music/  fonts/
-scripts/synthetic/     footage de test à vérité terrain connue + vérification
+  sfx/  music/  fonts/ (police + licence)
+examples/demo/         EDL écrites à la main sur le footage synthétique : edl.json (référence pour le directeur), sync-framing.edl.json (montage de contrôle)
+scripts/synthetic/     footage de test à vérité terrain connue + vérifications (check.ts : faits ; check-render.ts : MP4 rendu)
 requirements.txt       dépendances Python (transcription)
 projects/<slug>/       non commité
   raw/  work/  edl.json  out/  glossary.txt (optionnel)
   work/                probe.json transcript.json analysis.json frames/ .state/ <clip>/{source.mp4,audio.wav,whisper.json,media.json}
+                       render/ (bundle, public/, <nom>.resolved.json)
+  out/                 <slug>.mp4  preview/
 docs/
 .claude/agents/  .claude/skills/
 ```

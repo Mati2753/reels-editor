@@ -4,6 +4,7 @@ import { createProject, ProjectError } from "./new";
 import { registerIngest } from "./ingest";
 import { registerTranscribe } from "./transcribe";
 import { registerAnalyze } from "./analyze";
+import { registerRender } from "./render";
 import { CommandError } from "../pipeline/util/exec";
 import { PipelineError } from "../pipeline/project";
 import { PROJECTS_ROOT, REPO_ROOT } from "./paths";
@@ -24,6 +25,7 @@ program
 registerIngest(program);
 registerTranscribe(program);
 registerAnalyze(program);
+registerRender(program);
 
 try {
   await program.parseAsync(process.argv);
