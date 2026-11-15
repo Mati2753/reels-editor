@@ -16,8 +16,13 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@remotion/bundler": "4.0.543",
+    "@remotion/captions": "4.0.543",
     "@remotion/cli": "4.0.543",
+    "@remotion/fonts": "4.0.543",
+    "@remotion/renderer": "4.0.543",
     "commander": "15.1.0",
+    "opentype.js": "2.0.0",
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "remotion": "4.0.543",
