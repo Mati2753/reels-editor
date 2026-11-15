@@ -6,7 +6,7 @@ import { run } from "./util/exec";
 import { exists, fingerprint, StepState, writeJsonIfChanged } from "./util/state";
 import { PipelineError, readJson, type ProjectPaths } from "./project";
 import { ProbeSchema, type Transcript, type Word } from "./schemas";
-import { mergeEngineWords } from "./words";
+import { clipWords, mergeEngineWords } from "./words";
 import type { StepLog } from "./ingest";
 
 /** Bump when the engine call or the word merging changes. */
@@ -126,12 +126,10 @@ export async function transcribe(paths: ProjectPaths, options: TranscribeOptions
     log(`${clip.id}: ${output.words.length} words`);
   }
 
-  // Ids are numbered across clips in clip order; they only change if a transcription does.
+  // Ids are numbered per clip ("c2-w5"): re-transcribing one clip never renumbers another.
   const words: Word[] = [];
   for (const { clip, output } of outputs) {
-    for (const w of mergeEngineWords(output.words)) {
-      words.push({ id: `w${words.length + 1}`, clip, ...w });
-    }
+    words.push(...clipWords(clip, mergeEngineWords(output.words)));
   }
   const first = outputs[0]?.output;
   const transcript: Transcript = {

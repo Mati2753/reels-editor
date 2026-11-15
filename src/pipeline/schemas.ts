@@ -59,8 +59,11 @@ export type Probe = z.infer<typeof ProbeSchema>;
 
 // ---------------------------------------------------------------- transcript.json
 
+/** "c1-w12": clip id, then the word's rank in that clip (see clipWords in words.ts). */
+export const WORD_ID = /^c\d+-w\d+$/;
+
 export const WordSchema = z.object({
-  id: z.string().regex(/^w\d+$/),
+  id: z.string().regex(WORD_ID),
   clip: z.string(),
   text: z.string(),
   start: seconds,

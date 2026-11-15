@@ -5,7 +5,8 @@ import { cutsToShots, parseEbur128, parseScdet } from "./analysis/media";
 import { assignClipIds } from "./ingest";
 import { buildPrompt } from "./transcribe";
 import { fingerprint, stableStringify } from "./util/state";
-import { mergeEngineWords, normalizeWord } from "./words";
+import { clipWords, mergeEngineWords, normalizeWord } from "./words";
+import { WordSchema } from "./schemas";
 
 describe("mergeEngineWords", () => {
   it("glues French elisions and hyphenated pronouns that Whisper splits", () => {
@@ -26,6 +27,27 @@ describe("mergeEngineWords", () => {
 
   it("drops empty words and leading punctuation", () => {
     expect(mergeEngineWords([{ text: " ,", start: 0, end: 0.1, probability: 1 }, { text: " ", start: 0, end: 0, probability: 1 }])).toEqual([]);
+  });
+});
+
+describe("clipWords", () => {
+  const w = (text: string, start: number) => ({ text, start, end: start + 0.2, confidence: 1 });
+
+  it("numbers words per clip, prefixed by the clip id", () => {
+    const c1 = clipWords("c1", [w("Bonjour", 0), w("à", 0.3)]);
+    const c2 = clipWords("c2", [w("Et", 0)]);
+    expect([...c1, ...c2].map((x) => x.id)).toEqual(["c1-w1", "c1-w2", "c2-w1"]);
+    for (const x of [...c1, ...c2]) expect(WordSchema.safeParse(x).success).toBe(true);
+  });
+
+  it("keeps the ids of a clip when another clip is re-transcribed with more words", () => {
+    const before = [...clipWords("c1", [w("un", 0)]), ...clipWords("c2", [w("deux", 0), w("trois", 1)])];
+    const after = [...clipWords("c1", [w("un", 0), w("euh", 0.4), w("bis", 0.8)]), ...clipWords("c2", [w("deux", 0), w("trois", 1)])];
+    expect(after.filter((x) => x.clip === "c2").map((x) => x.id)).toEqual(before.filter((x) => x.clip === "c2").map((x) => x.id));
+  });
+
+  it("rejects the old cross-clip ids", () => {
+    expect(WordSchema.safeParse({ id: "w3", clip: "c1", text: "x", start: 0, end: 1, confidence: 1 }).success).toBe(false);
   });
 });
 

@@ -57,3 +57,17 @@ export function normalizeWord(text: string): string {
     .replace(/[’`]/g, "'")
     .replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, "");
 }
+
+/** Word id: clip id, then the word's 1-based rank in that clip ("c1-w12"). */
+export function wordId(clip: string, rank: number): string {
+  return `${clip}-w${rank}`;
+}
+
+/**
+ * Gives the words of one clip their ids. Numbering restarts in every clip so that
+ * re-transcribing a clip only changes the ids of that clip: the director's anchors on
+ * the other clips stay valid.
+ */
+export function clipWords<T extends MergedWord>(clip: string, words: readonly T[]): (T & { id: string; clip: string })[] {
+  return words.map((w, i) => ({ ...w, id: wordId(clip, i + 1), clip }));
+}

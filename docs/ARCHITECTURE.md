@@ -97,10 +97,10 @@ Sortie brute du moteur par clip dans `work/<clip>/whisper.json` (cache), puis `t
 ```json
 { "language": "fr",
   "engine": { "name": "faster-whisper 1.2.1", "model": "large-v3-turbo" },
-  "words": [ { "id": "w1", "clip": "c1", "text": "Bonjour", "start": 0.42, "end": 0.81, "confidence": 0.97 } ] }
+  "words": [ { "id": "c1-w1", "clip": "c1", "text": "Bonjour", "start": 0.42, "end": 0.81, "confidence": 0.97 } ] }
 ```
 
-Les élisions et pronoms que Whisper coupe en morceaux sont recollés (« aujourd » + « 'hui » → « aujourd'hui », « Mettez » + « -vous » → « Mettez-vous ») ; la ponctuation reste attachée au mot. Les identifiants de mots sont stables : numérotés dans l'ordre des clips, ils ne changent que si une transcription est refaite (nouveau modèle, nouvel audio) ; `validate` signalera alors les ancres devenues invalides. Le directeur s'y ancre.
+Les élisions et pronoms que Whisper coupe en morceaux sont recollés (« aujourd » + « 'hui » → « aujourd'hui », « Mettez » + « -vous » → « Mettez-vous ») ; la ponctuation reste attachée au mot. Les identifiants de mots sont stables : l'identifiant du clip suivi du rang du mot dans ce clip (`c1-w12`, `c2-w3`). Retranscrire un clip (nouveau modèle, nouvel audio) ne change que les identifiants de ce clip, jamais ceux des autres ; `validate` signale alors les ancres devenues invalides. Le directeur s'y ancre.
 
 Les bornes de `transcript.json` sont celles de Whisper. Les bornes recalées sur l'audio sont dans `analysis.json` (`words`) : ce sont elles qu'il faut utiliser pour couper et pour synchroniser les sous-titres.
 

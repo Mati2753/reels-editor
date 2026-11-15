@@ -25,7 +25,7 @@ Un événement ne donne jamais un temps de sortie absolu. Il s'**ancre** :
 
 ```ts
 type Anchor =
-  | { word: string; edge?: "start" | "end"; offset?: number }   // "w142" : au début du mot
+  | { word: string; edge?: "start" | "end"; offset?: number }   // "c1-w42" : au début du mot 42 du clip c1
   | { segment: string; offset?: number }                        // n secondes après le début du segment
 ```
 
