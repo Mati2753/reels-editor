@@ -16,6 +16,8 @@ Ce document est le savoir-faire du directeur. Il dit quand couper, quand zoomer,
 
 Chaque passe modifie l'EDL. Ne pas essayer de tout décider en une fois.
 
+Exemple complet, écrit à la main sur le footage synthétique : `examples/demo/edl.json` (ses `notes` expliquent chaque choix).
+
 ## 1. Accroche (0 à 3 secondes)
 
 Le spectateur décide de rester en moins de trois secondes.
@@ -37,6 +39,7 @@ Le spectateur décide de rester en moins de trois secondes.
 - Couper dans le silence, 0,05 à 0,08 s avant l'attaque du mot et 0,08 à 0,12 s après sa fin. Jamais au milieu d'un mot ni d'une respiration audible.
 - Laisser respirer après une phrase importante (0,3 à 0,4 s). Un montage sans aucune pause fatigue ; la pause gardée exprès a du poids.
 - Si supprimer un mot de remplissage produit un saut audible, le garder.
+- Repère : quand `analysis.json` relie le mot retiré au mot gardé par un `sound` non isolé, il n'y a pas de silence entre eux. La coupe garde alors quelques centièmes de seconde de la fin du mot retiré (mesuré sur le footage synthétique : 20 à 30 ms à environ 10 dB sous la voix) ou mange l'attaque du suivant. Écouter cette jonction avant de livrer.
 
 **Durée cible :** 20 à 45 s pour un conseil, jusqu'à 60–90 s pour une histoire. Si le premier montage dépasse, couper du contenu plutôt qu'accélérer.
 
@@ -50,6 +53,7 @@ Chaque coupe dans un plan fixe produit un saut visible. On le rend intentionnel 
 - **Zoom lent** (`move`, +4 à +8 % sur le segment) : sur une explication, une montée de tension.
 - **Retour au plan large** : au début d'une nouvelle idée.
 - Échelle maximale 1,4 sur une source 1080p, 1,8 sur une source 4K. Au-delà l'image est floue.
+- Le cadre ne sort jamais de l'image source : près d'un bord, le recadrage s'arrête au bord et `validate` prévient (`framing-shifted`). Sur une source verticale, un cadrage d'échelle s ne se centre qu'entre 1/(2s) et 1 − 1/(2s) de la hauteur : à 1,15 entre 0,435 et 0,565, à 1,25 entre 0,4 et 0,6. Des yeux plus hauts ne peuvent pas être au centre exact ; le cadre s'en approche autant que possible. Une source horizontale est recadrée en 9:16 autour de `origin.x` dès l'échelle 1.
 
 **Règle de rythme visuel :** quelque chose change à l'écran toutes les 2 à 4 secondes (coupe, échelle, overlay, b-roll). Plus de 5 secondes d'image identique est un défaut, sauf moment d'émotion voulu.
 
@@ -119,6 +123,7 @@ Une grande partie des Reels est regardée sans le son ; les sous-titres sont obl
 - Relire toute la transcription : corriger noms propres, marques, chiffres, accords via `overrides`. Une faute dans un sous-titre décrédibilise la vidéo.
 - Police grasse sans empattement, 60 à 80 px, contour ou ombre pour rester lisible sur tout fond.
 - Position : sous le menton en plan large (`lower-third`), jamais sur la bouche ni les yeux. Quand un overlay occupe la zone, les sous-titres se déplacent ou sont masqués (`hide`).
+- Le découpage en pages et en lignes est fait par `resolve` à partir des mots gardés (règles dans `docs/EDL.md`, « Sous-titres ») ; le directeur choisit le nombre de mots par page, la position, l'emphase et les corrections. Une correction à `""` retire un mot des sous-titres sans toucher au son. Style disponible : `bold` (police du brand kit en capitales, contour, mot actif dans la couleur `active` du brand kit et un peu plus grand, ponctuation finale retirée sauf « ? » et « ! »).
 
 **Zone sûre (1080×1920).** L'interface d'Instagram recouvre les bords. Aucun texte en dehors de :
 

@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "meta": { "title": "Trois astuces pour filmer avec son téléphone", "fps": 30, "width": 1080, "height": 1920, "brand": "default", "language": "fr" },
+  "segments": [
+    { "id": "hook-a", "type": "clip", "clip": "c1", "in": 1.93, "out": 3.34,
+      "framing": { "scale": 1, "origin": { "x": 0.5, "y": 0.47 }, "move": { "toScale": 1.08, "ease": "easeInOut" } } },
+    { "id": "hook-b", "type": "clip", "clip": "c1", "in": 3.34, "out": 5.96,
+      "framing": { "scale": 1.25, "origin": { "x": 0.5, "y": 0.42 } } },
+    { "id": "tip1", "type": "clip", "clip": "c1", "in": 7.12, "out": 9.06,
+      "framing": { "scale": 1, "origin": { "x": 0.5, "y": 0.42 } } },
+    { "id": "tip1-how", "type": "clip", "clip": "c1", "in": 11.28, "out": 13.02,
+      "framing": { "scale": 1.2, "origin": { "x": 0.5, "y": 0.42 } } },
+    { "id": "tip1-never", "type": "clip", "clip": "c1", "in": 13.02, "out": 14.18,
+      "framing": { "scale": 1.35, "origin": { "x": 0.4, "y": 0.55 } } },
+    { "id": "tip2", "type": "clip", "clip": "c1", "in": 15.81, "out": 17.05,
+      "framing": { "scale": 1, "origin": { "x": 0.5, "y": 0.42 } } },
+    { "id": "tip2-sound", "type": "clip", "clip": "c1", "in": 17.22, "out": 17.86,
+      "framing": { "scale": 1.2, "origin": { "x": 0.5, "y": 0.42 } } },
+    { "id": "tip2-mic", "type": "clip", "clip": "c1", "in": 19.03, "out": 20.16,
+      "framing": { "scale": 1, "origin": { "x": 0.5, "y": 0.42 } } },
+    { "id": "tip2-punch", "type": "clip", "clip": "c1", "in": 20.87, "out": 21.81,
+      "framing": { "scale": 1.25, "origin": { "x": 0.5, "y": 0.42 } } },
+    { "id": "tip3", "type": "clip", "clip": "c2", "in": 0.84, "out": 4.03,
+      "framing": { "scale": 1, "origin": { "x": 0.5, "y": 0.42 } } },
+    { "id": "cta", "type": "clip", "clip": "c2", "in": 5.86, "out": 7.05,
+      "framing": { "scale": 1.2, "origin": { "x": 0.5, "y": 0.42 } } }
+  ],
+  "transitions": [],
+  "overlays": [],
+  "captions": {
+    "enabled": true,
+    "style": "bold",
+    "maxWordsPerPage": 3,
+    "position": "lower-third",
+    "emphasis": [
+      { "word": "c1-w9", "style": "color" },
+      { "word": "c1-w22", "style": "box" },
+      { "word": "c1-w33", "style": "color" },
+      { "word": "c1-w43", "style": "scale" },
+      { "word": "c1-w54", "style": "box" },
+      { "word": "c2-w9", "style": "color" }
+    ],
+    "overrides": [
+      { "word": "c1-w34", "text": "dos" }
+    ],
+    "hide": []
+  },
+  "audio": { "voice": { "targetLufs": -14, "denoise": false }, "sfx": [] },
+  "notes": "Promesse : trois astuces concrètes pour mieux filmer au téléphone. Accroche sur « aujourd'hui je vais vous montrer trois astuces » (le « Bonjour à tous » est coupé, premier mot à 0,05 s) avec un zoom lent puis un punch-in sur « trois astuces ». Coupés : le clap, les silences (ramenés à environ 0,15 s, 0,3 s gardées après les phrases clés), « Euh » (c1-w16), « euh » (c1-w40), « Du coup » (c1-w44, c1-w45), la répétition « ça change » (c1-w50, c1-w51), la prise ratée r1 (c1-w23 à c1-w26), « Voilà » (c2-w10) et le clap final. Échelles alternées 1 / 1,2-1,35 ; punch-in plus serré sur la négation « jamais dos à elle » (origine décalée sur l'objet C) et sur la chute « ça change tout ». Fin nette sur l'appel à l'action. Correction : Whisper a entendu « d'eau » pour « dos » (c1-w34)."
+}

@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "meta": { "title": "Test de synchronisation et de cadrage (footage synthétique)", "fps": 30, "width": 1080, "height": 1920, "brand": "default", "language": "fr" },
+  "segments": [
+    { "id": "clap1", "type": "clip", "clip": "c1", "in": 0.0, "out": 0.75,
+      "framing": { "scale": 1, "origin": { "x": 0.5, "y": 0.5 } } },
+    { "id": "edge-b", "type": "clip", "clip": "c1", "in": 5.7, "out": 6.8,
+      "framing": { "scale": 1.3, "origin": { "x": 0.8796, "y": 0.1198 } } },
+    { "id": "fast-c", "type": "clip", "clip": "c1", "in": 11.28, "out": 14.18, "speed": 1.25,
+      "framing": { "scale": 1.3, "origin": { "x": 0.4, "y": 0.55 } } },
+    { "id": "clap2-fast", "type": "clip", "clip": "c1", "in": 22.3, "out": 23.0, "speed": 1.5,
+      "framing": { "scale": 1.25, "origin": { "x": 0.5, "y": 0.4198 } } },
+    { "id": "clap3", "type": "clip", "clip": "c2", "in": 0.0, "out": 0.8,
+      "framing": { "scale": 1.2, "origin": { "x": 0.5, "y": 0.4198 } } },
+    { "id": "clap4", "type": "clip", "clip": "c2", "in": 7.2, "out": 8.0,
+      "framing": { "scale": 1, "origin": { "x": 0.5, "y": 0.5 } } }
+  ],
+  "transitions": [],
+  "overlays": [],
+  "captions": { "enabled": false, "style": "bold", "maxWordsPerPage": 3, "position": "lower-third", "emphasis": [], "overrides": [], "hide": [] },
+  "audio": { "voice": { "targetLufs": -14, "denoise": false }, "sfx": [] },
+  "notes": "Montage de contrôle, pas un exemple de style : garde les quatre claps (flash blanc + bip au même instant dans la source) pour mesurer la synchronisation son/image après coupes, dont deux segments accélérés ; cadre un punch-in sur la cible B près du coin (le recadrage doit s'arrêter au bord de la source) et sur la cible C hors axe."
+}
