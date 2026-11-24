@@ -1,0 +1,96 @@
+{
+  "id": "sample-cut",
+  "seconds": 8.566666666666666,
+  "created": "",
+  "settings": {
+    "format": "cinematic",
+    "target": 30,
+    "cuts": true,
+    "motion": true,
+    "captions": true,
+    "sound": true,
+    "director": "local",
+    "brief": ""
+  },
+  "decisions": [
+    {
+      "title": "Picture edit",
+      "detail": "3 shots across 8.6 seconds. Cuts follow available shot changes and speech boundaries."
+    },
+    {
+      "title": "Motion",
+      "detail": "Opened with “Alpine field notes”. Applied 7% alternating punch-ins and 2 visible transitions."
+    },
+    {
+      "title": "Subtitles",
+      "detail": "20 timed words in groups of up to 4."
+    },
+    {
+      "title": "Sound",
+      "detail": "2 timed sound accents. The music ducks under the original audio."
+    }
+  ],
+  "segments": [
+    {
+      "start": 0,
+      "end": 3.066666666666667,
+      "source": 0,
+      "name": "Shot 1"
+    },
+    {
+      "start": 3.066666666666667,
+      "end": 5.8,
+      "source": 4.1,
+      "name": "Shot 2"
+    },
+    {
+      "start": 5.8,
+      "end": 8.566666666666666,
+      "source": 8.1,
+      "name": "Shot 3"
+    }
+  ],
+  "captions": [
+    {
+      "start": 0.36666666666666664,
+      "end": 1.7333333333333334,
+      "text": "FOLLOW THE MORNING LIGHT"
+    },
+    {
+      "start": 1.7333333333333334,
+      "end": 3.3333333333333335,
+      "text": "INTO THE MOUNTAINS"
+    },
+    {
+      "start": 3.3333333333333335,
+      "end": 4.833333333333333,
+      "text": "THE QUIET FOREST CHANGES"
+    },
+    {
+      "start": 4.833333333333333,
+      "end": 6.066666666666666,
+      "text": "THE PACE"
+    },
+    {
+      "start": 6.066666666666666,
+      "end": 7.266666666666667,
+      "text": "STAY UNTIL THE LAKE"
+    },
+    {
+      "start": 7.266666666666667,
+      "end": 8.566666666666666,
+      "text": "COMES INTO VIEW"
+    }
+  ],
+  "sounds": [
+    {
+      "at": 3.066666666666667,
+      "name": "sweep"
+    },
+    {
+      "at": 5.8,
+      "name": "sweep"
+    }
+  ],
+  "music": true
+}

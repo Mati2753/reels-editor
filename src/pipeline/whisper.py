@@ -41,6 +41,7 @@ def main() -> None:
     ap.add_argument("--device", default="auto", help="cpu, cuda or auto")
     ap.add_argument("--compute-type", default="default", help="e.g. int8 (CPU), float16 (GPU)")
     ap.add_argument("--threads", type=int, default=0)
+    ap.add_argument("--vad", action="store_true", help="skip non-speech regions")
     args = ap.parse_args()
 
     try:
@@ -53,7 +54,7 @@ def main() -> None:
     model = WhisperModel(args.model, device=args.device, compute_type=args.compute_type, cpu_threads=args.threads)
     segments, info = model.transcribe(
         audio,
-        language=args.language,
+        language=None if args.language == "auto" else args.language,
         task="transcribe",
         beam_size=args.beam_size,
         # Temperature 0 only: the same audio gives the same words on every run.
@@ -61,7 +62,7 @@ def main() -> None:
         initial_prompt=args.prompt or None,
         condition_on_previous_text=False,
         word_timestamps=True,
-        vad_filter=False,
+        vad_filter=args.vad,
     )
     words = []
     for segment in segments:

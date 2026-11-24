@@ -13,7 +13,7 @@ export interface ReelProps extends Record<string, unknown> {
 /**
  * Stacks the Reel tracks, bottom to top: video (which plays the voice), transitions,
  * overlays of the "background" and "behind-captions" layers, captions, overlays of the
- * "front" layer. Music and sound effects (audio track) arrive in phase 5.
+ * "front" layer. FFmpeg mixes the resolved music and sound cues after the picture render.
  */
 export const Reel: React.FC<ReelProps> = ({ edl }) => {
   useBrandFonts(edl.brand);

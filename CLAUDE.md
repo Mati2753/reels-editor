@@ -2,7 +2,7 @@
 
 Éditeur de Reels piloté par Claude Code : il transforme du footage brut (face caméra) ou un simple script en Reel vertical fini (1080×1920, 30 fps) avec coupes, zooms, sous-titres, animations, transitions et son.
 
-Il n'y a pas d'interface graphique. L'utilisateur parle à Claude Code ; un **directeur** prend les décisions de montage et les écrit dans un fichier `edl.json` ; un **moteur de rendu** déterministe exécute ce fichier.
+Cutroom (`npm run editor`) fournit l’interface locale de montage. Le directeur local ou Claude Code choisit les coupes et écrit un fichier `edl.json`. Le moteur déterministe exécute ce fichier. Le studio et la CLI partagent les projets, les faits, le validateur et le rendu. Voir `docs/STUDIO.md` et la commande Claude Code `/review-edit <slug>`.
 
 ## Principe central
 

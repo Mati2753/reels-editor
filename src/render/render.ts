@@ -1,6 +1,9 @@
 import { renderMedia } from "@remotion/renderer";
 import { mkdir, rename, rm } from "node:fs/promises";
 import os from "node:os";
+import type { ResolvedEdl } from "../edl/resolved";
+import { soundMix } from "./sound-mix";
+import { measureLoudness } from "../pipeline/analysis/media";
 import path from "node:path";
 import { PipelineError, readJson, type ProjectPaths } from "../pipeline/project";
 import { ProbeSchema } from "../pipeline/schemas";
@@ -10,7 +13,7 @@ import { resolvedProject, type EdlTarget } from "./project";
 import { browserExecutable, bundleReel, chromiumOptions, rendererFingerprint, renderDir, selectReel } from "./remotion";
 
 /** Bump when the encoding or the audio finishing changes. */
-const RENDER_VERSION = 1;
+const RENDER_VERSION = 2;
 
 /** True peak ceiling after loudness normalization, dBTP. */
 const TRUE_PEAK = -1;
@@ -26,7 +29,7 @@ export interface RenderReport {
   frames: number;
   seconds: number;
   renderSeconds: number;
-  loudness: { integrated: number; truePeak: number } | null;
+  loudness: { integrated: number | null; truePeak: number | null } | null;
 }
 
 interface LoudnormStats {
@@ -51,21 +54,27 @@ function parseLoudnorm(stderr: string): LoudnormStats {
  * "ffmpeg finalise l'audio"). The first pass measures, the second applies a linear gain when
  * the true peak allows it. The picture is copied untouched.
  */
-async function finishAudio(input: string, output: string, targetLufs: number): Promise<{ integrated: number; truePeak: number; type: string }> {
-  const filter = `loudnorm=I=${targetLufs}:TP=${TRUE_PEAK}:LRA=11`;
+async function finishAudio(input: string, output: string, edl: ResolvedEdl): Promise<{ integrated: number | null; truePeak: number | null; type: string }> {
+  const filter = `loudnorm=I=${edl.audio.voice.targetLufs}:TP=${TRUE_PEAK}:LRA=11`;
   const first = await ffmpeg(["-i", input, "-vn", "-af", `${filter}:print_format=json`, "-f", "null", "-"]);
   const m = parseLoudnorm(first.stderr);
+  const measured = [m.input_i, m.input_tp, m.input_lra, m.input_thresh, m.target_offset].every(v => Number.isFinite(Number(v)));
+  const voice = measured
+    ? `${filter}:measured_I=${m.input_i}:measured_TP=${m.input_tp}:measured_LRA=${m.input_lra}:measured_thresh=${m.input_thresh}:offset=${m.target_offset}:linear=true:print_format=json`
+    : "anull";
+  const mixed = Boolean(edl.audio.music || edl.audio.sfx.length);
+  const mix = mixed ? soundMix(edl, voice) : null;
   const second = await ffmpeg([
-    "-i", input,
-    "-map", "0:v:0", "-map", "0:a:0",
-    "-c:v", "copy",
-    "-af", `${filter}:measured_I=${m.input_i}:measured_TP=${m.input_tp}:measured_LRA=${m.input_lra}:measured_thresh=${m.input_thresh}:offset=${m.target_offset}:linear=true:print_format=json`,
-    "-ar", "48000", "-c:a", "aac", "-b:a", "192k",
-    "-movflags", "+faststart",
-    output,
+    "-i", input, ...(mix?.inputs ?? []),
+    ...(mix ? ["-filter_complex", mix.filters, "-map", "0:v:0", "-map", "[mix]"] : ["-map", "0:v:0", "-map", "0:a:0", "-af", voice]),
+    "-c:v", "copy", "-ar", "48000", "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", output,
   ]);
-  const s = parseLoudnorm(second.stderr);
-  return { integrated: Number(s.output_i), truePeak: Number(s.output_tp), type: s.normalization_type ?? "?" };
+  if (!mixed && measured) {
+    const stats = parseLoudnorm(second.stderr);
+    return { integrated: Number(stats.output_i), truePeak: Number(stats.output_tp), type: stats.normalization_type ?? "linear" };
+  }
+  const stats = await measureLoudness(output);
+  return { integrated: stats.integratedLufs, truePeak: stats.truePeakDb, type: mixed ? "studio mix" : "silent" };
 }
 
 /**
@@ -97,6 +106,7 @@ export async function render(paths: ProjectPaths, target: EdlTarget, options: Re
     codec: "h264",
     crf: 18,
     audioCodec: "aac",
+    enforceAudioTrack: true,
     audioBitrate: "320k",
     outputLocation: raw,
     inputProps: { edl },
@@ -118,18 +128,18 @@ export async function render(paths: ProjectPaths, target: EdlTarget, options: Re
   log(`normalizing the voice to ${edl.audio.voice.targetLufs} LUFS...`);
   await mkdir(paths.out, { recursive: true });
   const tmp = `${output}.tmp.mp4`;
-  const loud = await finishAudio(raw, tmp, edl.audio.voice.targetLufs);
-  await rename(tmp, output);
-  await rm(raw, { force: true });
+  const loud = await finishAudio(raw, tmp, edl);
 
   // Check what was written.
-  const info = (await ffprobeJson(["-select_streams", "v:0", "-count_packets", "-show_entries", "stream=width,height,r_frame_rate,nb_read_packets", output])) as {
+  const info = (await ffprobeJson(["-select_streams", "v:0", "-count_packets", "-show_entries", "stream=width,height,r_frame_rate,nb_read_packets", tmp])) as {
     streams: { width: number; height: number; r_frame_rate: string; nb_read_packets: string }[];
   };
   const v = info.streams[0];
   if (!v || v.width !== edl.width || v.height !== edl.height || v.r_frame_rate !== `${edl.fps}/1` || Number(v.nb_read_packets) !== frames) {
     throw new PipelineError(`the rendered file does not match the EDL: ${JSON.stringify(v)} (expected ${edl.width}x${edl.height}, ${edl.fps} fps, ${frames} frames)`);
   }
+  await rename(tmp, output);
+  await rm(raw, { force: true });
   state.set(`mp4:${target.name}`, key);
   await state.save();
   const renderSeconds = (Date.now() - started) / 1000;

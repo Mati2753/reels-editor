@@ -80,6 +80,9 @@ export async function rendererFingerprint(): Promise<string> {
     ...(await listFiles(path.join(REPO_ROOT, "src", "remotion"))),
     ...(await listFiles(path.join(REPO_ROOT, "src", "brand"))),
     ...(await listFiles(path.join(REPO_ROOT, "assets", "fonts"))),
+    ...(await listFiles(path.join(REPO_ROOT, "assets", "sfx"))),
+    ...(await listFiles(path.join(REPO_ROOT, "assets", "music"))),
+    path.join(REPO_ROOT, "src", "render", "sound-mix.ts"),
     path.join(REPO_ROOT, "src", "edl", "framing.ts"),
     path.join(REPO_ROOT, "package-lock.json"),
   ];
