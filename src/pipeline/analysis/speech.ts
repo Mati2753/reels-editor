@@ -1,4 +1,4 @@
-import { ms } from "../project";
+import { ms } from "../../edl/time";
 import type { Filler, Retake, Sentence, Silence, Sound } from "../schemas";
 import { normalizeWord } from "../words";
 import { subtract, type Interval } from "./intervals";

@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#171919" />
+    <title>Cutroom · Reel editor</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23ffab76'/%3E%3Cpath d='m14 43 9-22h7l-9 22zm13 0 9-22h7l-9 22zm13 0 9-22h4l-9 22z' fill='%23171919'/%3E%3C/svg%3E"
+    />
+    <link rel="stylesheet" href="./studio.css" />
+  </head>
+  <body>
+    <header>
+      <div class="bar">
+        <a class="brand" href="./" aria-label="Cutroom studio"
+          ><span class="mark" aria-hidden="true"><i></i><i></i><i></i></span>Cutroom<span class="dot">.</span></a
+        ><span class="barline"></span><span class="nav">Editing studio</span><span class="device">On this device</span>
+      </div>
+    </header>
+    <main>
+      <div class="heading">
+        <div>
+          <p class="eyebrow">Reel editor</p>
+          <h1 id="project">Alpine field notes</h1>
+          <p class="meta" id="meta">Sample project · Vertical reel</p>
+        </div>
+        <div class="actions">
+          <button class="primary" id="choose"><span aria-hidden="true">＋</span> Edit my video</button
+          ><a class="soft" id="save" href="./assets/sample-cut.mp4" download="Alpine field notes.mp4">Download reel</a>
+        </div>
+      </div>
+      <input type="file" hidden id="file" accept="video/*,.mp4,.mov,.m4v,.webm,.mkv,.avi" /><input
+        type="file"
+        hidden
+        id="reference"
+        accept="video/*,.mp4,.mov,.m4v,.webm,.mkv,.avi"
+      /><input type="file" hidden id="srt" accept=".srt" />
+      <section id="message" class="notice" hidden>
+        <div>
+          <strong id="status" role="status" aria-live="polite"></strong
+          ><progress id="progress" aria-label="Edit progress" max="1" hidden></progress>
+        </div>
+        <button hidden id="cancel">Cancel</button>
+      </section>
+      <div class="layout">
+        <section class="panel monitor" aria-label="Reel preview">
+          <div class="panelbar">
+            <h2>Preview</h2>
+            <div class="tabs" aria-label="Preview version">
+              <button aria-pressed="false" id="original">Original</button
+              ><button aria-pressed="true" id="edited">Director’s cut</button>
+            </div>
+          </div>
+          <div class="stage">
+            <video
+              id="preview"
+              playsinline
+              controls
+              preload="metadata"
+              poster="./assets/sample-cover.jpg"
+              src="./assets/sample-cut.mp4"
+              aria-label="Video preview"
+            ></video>
+          </div>
+          <div class="timeline">
+            <div class="timeline-heading">
+              <h3>Timeline</h3>
+              <span id="length">8.6 seconds</span>
+            </div>
+            <div id="shots" aria-label="Scenes in the edit"></div>
+          </div>
+        </section>
+        <aside class="panel director">
+          <div class="panelbar">
+            <h2><span class="spark" aria-hidden="true">✦</span> Director</h2>
+          </div>
+          <div class="settings">
+            <p class="intro">Choose a video and the director picks the cuts, adds motion and mixes the sound.</p>
+            <label for="format">Editing style</label>
+            <div class="style-card">
+              <img id="style-image" src="./assets/alpine.jpg" alt="" />
+              <div>
+                <select id="format">
+                  <option value="cinematic">Cinematic</option>
+                </select>
+                <p id="description">Longer shots, gentle movement and soft dissolves.</p>
+              </div>
+            </div>
+            <button class="learn" id="learn">Learn a style from a video</button>
+            <details id="options">
+              <summary>Edit settings</summary>
+              <div class="options">
+                <label class="option"
+                  >Maximum length
+                  <select id="target">
+                    <option>15</option>
+                    <option selected>30</option>
+                    <option>60</option>
+                    <option>90</option>
+                  </select>
+                  seconds</label
+                ><label class="option"><input type="checkbox" checked id="captions" /> Automatic subtitles</label
+                ><label class="option"
+                  ><input type="checkbox" checked id="motion" /> Animated titles, zooms and transitions</label
+                ><label class="option"><input type="checkbox" checked id="sound" /> Music and sound effects</label
+                ><button id="add-srt" class="link">Use my own subtitle file</button>
+              </div>
+            </details>
+            <button id="remake" class="soft wide">Re-edit this video</button>
+            <div class="notes">
+              <h3>Director’s notes</h3>
+              <ul id="notes">
+                <li>Cut 12 seconds of footage into three scenes.</li>
+                <li>Added timed subtitles, soft transitions and a music bed.</li>
+              </ul>
+            </div>
+            <p class="privacy">
+              Your footage stays on this device. The director edits from the first three minutes. Keep this tab open
+              while it works.
+            </p>
+          </div>
+        </aside>
+      </div>
+    </main>
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

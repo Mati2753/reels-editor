@@ -6,6 +6,12 @@ Cutroom turns uploaded footage into a finished vertical reel. Its director choos
 
 ![Cutroom editing studio showing the sample reel, timeline and director settings](docs/studio.jpg)
 
+## Browser studio
+
+Select **Edit my video** and choose a clip. The browser director makes a vertical MP4 and enables **Download reel**. **Learn a style from a video** saves the measured pacing and sound settings on this device. The browser edition processes the first three minutes of each file and exports at 720 × 1280. The first automatic transcription downloads a speech model.
+
+To build the static studio for hosting, run `npm ci` and `npm run build:browser`. The output is in `dist/browser/`. Serve that directory over HTTPS.
+
 ## Open the editor
 
 Install Node 22.12 or later and FFmpeg with ffprobe, then run

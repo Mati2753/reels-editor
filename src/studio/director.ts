@@ -1,8 +1,6 @@
-import { FPS, toFrame } from "../edl/resolve";
-import { MAX_DURATION, MIN_DURATION } from "../edl/validate";
+import { FPS, toFrame, MAX_DURATION, MIN_DURATION, ms } from "../edl/time";
 import type { ClipSegment, Edl } from "../edl/schema";
 import type { Analysis, Probe, TimedWord } from "../pipeline/schemas";
-import { ms } from "../pipeline/project";
 import { subtract, type Interval } from "../pipeline/analysis/intervals";
 import type { Format } from "./formats";
 

@@ -75,7 +75,4 @@ export async function listRawVideos(rawDir: string): Promise<string[]> {
     .sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
 }
 
-/** Rounds to the millisecond, the precision every JSON fact is written with. */
-export function ms(value: number): number {
-  return Math.round(value * 1000) / 1000;
-}
+export { ms } from "../edl/time";

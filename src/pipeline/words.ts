@@ -1,4 +1,4 @@
-import { ms } from "./project";
+import { ms } from "../edl/time";
 
 /** A word as the Whisper engine returns it, before merging and ids. */
 export interface EngineWord {

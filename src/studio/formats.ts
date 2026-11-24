@@ -1,72 +1,9 @@
-import { z } from "zod";
+import { formatFromMeasurements, median, type Format } from "./format-model";
+export { FormatSchema, presets, type Format } from "./format-model";
 import { detectCuts, cutsToShots, detectSilence, measureLoudness } from "../pipeline/analysis/media";
 import { parseSilencedetect } from "../pipeline/analysis/intervals";
 import { ffprobeJson, ffmpeg } from "../pipeline/util/exec";
 import { ms } from "../pipeline/project";
-
-export const FormatSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  description: z.string(),
-  image: z.string(),
-  shotSeconds: z.number().positive(),
-  pauseSeconds: z.number().positive(),
-  zoom: z.number().min(0).max(0.3),
-  transition: z.enum(["cut", "fade", "zoom", "flash"]),
-  captionWords: z.number().int().min(2).max(4),
-  musicDb: z.number().nullable(),
-  reference: z
-    .object({
-      duration: z.number(),
-      shots: z.number(),
-      medianShot: z.number(),
-      silentShare: z.number().nullable(),
-      lufs: z.number().nullable(),
-      motion: z.number(),
-      flashes: z.number(),
-      captionCueWords: z.number().nullable().optional(),
-    })
-    .optional(),
-});
-export type Format = z.infer<typeof FormatSchema>;
-export const presets: Format[] = [
-  {
-    id: "cinematic",
-    name: "Cinematic",
-    description: "Longer shots, gentle movement and soft dissolves.",
-    image: "/assets/alpine.jpg",
-    shotSeconds: 4.8,
-    pauseSeconds: 0.85,
-    zoom: 0.07,
-    transition: "fade",
-    captionWords: 4,
-    musicDb: -17,
-  },
-  {
-    id: "quick-cut",
-    name: "Quick cut",
-    description: "Short beats, punch-ins and crisp accents.",
-    image: "/assets/forest.jpg",
-    shotSeconds: 1.9,
-    pauseSeconds: 0.4,
-    zoom: 0.19,
-    transition: "zoom",
-    captionWords: 2,
-    musicDb: -19,
-  },
-  {
-    id: "editorial",
-    name: "Editorial",
-    description: "Speech-led cuts, readable captions and clean joins.",
-    image: "/assets/lake.jpg",
-    shotSeconds: 3.2,
-    pauseSeconds: 0.6,
-    zoom: 0.1,
-    transition: "cut",
-    captionWords: 3,
-    musicDb: null,
-  },
-];
 
 export async function inspectVideo(file: string) {
   const data = (await ffprobeJson([
@@ -97,12 +34,6 @@ export async function inspectVideo(file: string) {
     (s) => s.codec_type === "subtitle" && ["mov_text", "subrip", "webvtt", "ass", "ssa"].includes(s.codec_name ?? ""),
   );
   return { duration, hasAudio: data.streams.some((s) => s.codec_type === "audio"), subtitle };
-}
-
-function median(values: number[]): number {
-  const sorted = [...values].sort((a, b) => a - b);
-  const i = Math.floor(sorted.length / 2);
-  return sorted.length % 2 ? sorted[i]! : (sorted[i - 1]! + sorted[i]!) / 2;
 }
 
 // YDIF measures the change in luminance between samples. The median suppresses
@@ -156,39 +87,16 @@ export async function learnFormat(file: string, id: string, name: string): Promi
     );
     lufs = (await measureLoudness(file)).integratedLufs;
   }
-  const medianShot = ms(median(shots.map((s) => s.end - s.start)));
-  const shotSeconds = Math.min(9, Math.max(1.1, medianShot));
-  const transition = transients.length ? "flash" : shotSeconds <= 2.5 ? "cut" : motion > 13 ? "zoom" : "fade";
-  return {
+  return formatFromMeasurements(
     id,
     name,
-    image: `/formats/${id}/poster.jpg`,
-    description: `${shots.length} measured shot${shots.length === 1 ? "" : "s"} · ${medianShot.toFixed(1)}s median length`,
-    shotSeconds,
-    pauseSeconds: ms(0.38 + 0.8 * (silentShare ?? Math.min(1, shotSeconds / 9))),
-    zoom: ms(Math.min(0.2, 0.045 + motion * 0.004)),
-    transition,
-    captionWords:
-      captionCueWords !== null
-        ? Math.max(2, Math.min(4, Math.round(captionCueWords)))
-        : shotSeconds <= 2.5
-          ? 2
-          : shotSeconds < 4
-            ? 3
-            : 4,
-    musicDb:
-      !hasAudio || silentShare === null || silentShare > 0.8 || lufs === null || lufs < -52
-        ? null
-        : Math.max(-26, Math.min(-16, Math.round(lufs - 4))),
-    reference: {
-      duration,
-      shots: shots.length,
-      medianShot,
-      silentShare,
-      lufs,
-      motion,
-      flashes: transients.length,
-      captionCueWords,
-    },
-  };
+    duration,
+    shots.map((s) => s.end - s.start),
+    motion,
+    transients.length,
+    hasAudio,
+    silentShare,
+    lufs,
+    captionCueWords,
+  );
 }
