@@ -174,7 +174,7 @@ type AudioConfig = {
 }
 ```
 
-La voix est le son des clips, normalisé par `reels render` à `targetLufs` (EBU R128 en deux passes, crête vraie −1 dBTP). La musique, les effets sonores et la réduction de bruit arrivent en phase 5 ; d'ici là `validate` refuse `music`, une liste `sfx` non vide et `denoise: true`.
+La voix est le son des clips, normalisé par `reels render` à `targetLufs` (EBU R128 en deux passes, crête vraie −1 dBTP). La bibliothèque comprend `music/drift.m4a`, `sfx/pulse.wav` et `sfx/sweep.wav`. Après normalisation de la voix, ffmpeg mélange les effets aux ancres résolues. La musique boucle à partir de `startAt` secondes dans la piste, avec le gain demandé, le ducking piloté par la voix et le fondu de fin. Un limiteur protège le mix. `validate` signale un fichier inconnu (`audio-asset`). La réduction de bruit reste à implémenter.
 
 ## Résolution
 
@@ -202,7 +202,7 @@ Erreurs :
 - Aucun texte hors de la zone sûre (voir `DIRECTOR.md`) : la boîte de chaque page, contour et grossissement du mot actif compris, reste dans les marges du brand kit [`caption-safe-zone`] ; aucun mot trop large même réduit [`caption-overflow`].
 - Brand kit et style de sous-titres existants [`unknown-brand`, `unknown-caption-style`].
 - Durée totale comprise entre 5 s et 90 s [`duration`].
-- Ce que le rendu ne sait pas encore faire est refusé plutôt qu'ignoré [`not-rendered-yet`] : musique, effets sonores, réduction de bruit (phase 5), fonds de scène `image` et `video` (phase 6).
+- Ce que le rendu ne sait pas encore faire est refusé plutôt qu'ignoré [`not-rendered-yet`] : réduction de bruit, fonds de scène `image` et `video` (phase 6).
 
 Avertissements :
 

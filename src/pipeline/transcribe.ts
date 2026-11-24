@@ -10,7 +10,7 @@ import { clipWords, mergeEngineWords } from "./words";
 import type { StepLog } from "./ingest";
 
 /** Bump when the engine call or the word merging changes. */
-const TRANSCRIBE_VERSION = 1;
+const TRANSCRIBE_VERSION = 2;
 
 const WHISPER_SCRIPT = fileURLToPath(new URL("./whisper.py", import.meta.url));
 const REPO_ROOT = fileURLToPath(new URL("../../", import.meta.url));
@@ -30,6 +30,7 @@ export interface TranscribeOptions {
   device: string;
   computeType: string;
   python: string;
+  vadFilter?: boolean;
 }
 
 export function defaultTranscribeOptions(env: NodeJS.ProcessEnv = process.env): TranscribeOptions {
@@ -97,7 +98,7 @@ export async function transcribe(paths: ProjectPaths, options: TranscribeOptions
   for (const clip of probe.clips) {
     const wav = path.join(paths.work, clip.normalized.audio);
     const cache = path.join(paths.work, clip.id, "whisper.json");
-    const key = fingerprint(TRANSCRIBE_VERSION, await state.hashFile(wav), options.model, options.language, prompt, options.beamSize, options.computeType);
+    const key = fingerprint(TRANSCRIBE_VERSION, await state.hashFile(wav), options.model, options.language, prompt, options.beamSize, options.computeType, options.vadFilter ?? false);
     if (state.get(`clip:${clip.id}`) === key && (await exists(cache))) {
       outputs.push({ clip: clip.id, output: EngineOutputSchema.parse(JSON.parse(await readFile(cache, "utf8"))) });
       skipped.push(clip.id);
@@ -107,6 +108,7 @@ export async function transcribe(paths: ProjectPaths, options: TranscribeOptions
     python ??= await findPython(options.python);
     log(`${clip.id}: transcribing with ${options.model} (${options.language})...`);
     const args = [WHISPER_SCRIPT, wav, "--model", options.model, "--language", options.language, "--beam-size", String(options.beamSize), "--device", options.device, "--compute-type", options.computeType];
+    if (options.vadFilter) args.push("--vad");
     if (prompt) args.push("--prompt", prompt);
     let stdout: string;
     try {
@@ -133,7 +135,7 @@ export async function transcribe(paths: ProjectPaths, options: TranscribeOptions
   }
   const first = outputs[0]?.output;
   const transcript: Transcript = {
-    language: options.language,
+    language: options.language === "auto" ? first?.language ?? "und" : options.language,
     engine: { name: first ? `${first.engine} ${first.engineVersion}` : "faster-whisper", model: options.model },
     words,
   };

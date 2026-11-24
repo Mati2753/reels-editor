@@ -26,7 +26,7 @@ Toutes les dépendances `remotion` et `@remotion/*` sont épinglées à la même
 
 **Licence Remotion** : gratuit pour les particuliers et les sociétés de 3 personnes ou moins ; au-delà, une licence société est requise. À vérifier avant un usage commercial.
 
-**Pas d'appel API au runtime.** Le directeur est Claude Code lui-même (agent + skill), pas un service. Aucune clé API n'est nécessaire pour monter une vidéo.
+Le studio local (`npm run editor`, voir `docs/STUDIO.md`) propose un directeur automatique sans compte modèle. En mode Claude Code, le CLI authentifié reçoit les séquences candidates et retourne une sélection structurée. Les deux modes utilisent le contrat EDL et le même rendu.
 
 ## Pipeline
 

@@ -1,0 +1,138 @@
+{
+  "version": 1,
+  "meta": {
+    "title": "Alpine field notes",
+    "fps": 30,
+    "width": 1080,
+    "height": 1920,
+    "brand": "default",
+    "language": "en"
+  },
+  "segments": [
+    {
+      "id": "s1",
+      "type": "clip",
+      "clip": "c1",
+      "in": 0,
+      "out": 3.066666666666667,
+      "framing": {
+        "scale": 1,
+        "origin": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "move": {
+          "toScale": 1.039,
+          "ease": "easeInOut"
+        }
+      }
+    },
+    {
+      "id": "s2",
+      "type": "clip",
+      "clip": "c1",
+      "in": 4.1,
+      "out": 6.833333333333333,
+      "framing": {
+        "scale": 1.07,
+        "origin": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "move": {
+          "toScale": 1.109,
+          "ease": "easeInOut"
+        }
+      }
+    },
+    {
+      "id": "s3",
+      "type": "clip",
+      "clip": "c1",
+      "in": 8.1,
+      "out": 10.866666666666667,
+      "framing": {
+        "scale": 1,
+        "origin": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "move": {
+          "toScale": 1.039,
+          "ease": "easeInOut"
+        }
+      }
+    }
+  ],
+  "transitions": [
+    {
+      "between": [
+        "s1",
+        "s2"
+      ],
+      "type": "fade",
+      "duration": 0.36
+    },
+    {
+      "between": [
+        "s2",
+        "s3"
+      ],
+      "type": "fade",
+      "duration": 0.36
+    }
+  ],
+  "overlays": [
+    {
+      "id": "opening-title",
+      "component": "HookTitle",
+      "props": {
+        "text": "Alpine field notes"
+      },
+      "at": {
+        "segment": "s1"
+      },
+      "duration": 2.2,
+      "layer": "front",
+      "zone": "top"
+    }
+  ],
+  "captions": {
+    "enabled": true,
+    "style": "bold",
+    "maxWordsPerPage": 4,
+    "position": "auto",
+    "emphasis": [],
+    "overrides": [],
+    "hide": []
+  },
+  "audio": {
+    "voice": {
+      "targetLufs": -14,
+      "denoise": false
+    },
+    "music": {
+      "file": "music/drift.m4a",
+      "gainDb": -17,
+      "duck": true,
+      "fadeOut": 0.8
+    },
+    "sfx": [
+      {
+        "file": "sfx/sweep.wav",
+        "at": {
+          "segment": "s2"
+        },
+        "gainDb": -15
+      },
+      {
+        "file": "sfx/sweep.wav",
+        "at": {
+          "segment": "s3"
+        },
+        "gainDb": -15
+      }
+    ]
+  },
+  "notes": "Picture edit — 3 shots across 8.6 seconds. Cuts follow available shot changes and speech boundaries.\nMotion — Opened with “Alpine field notes”. Applied 7% alternating punch-ins and 2 visible transitions.\nSubtitles — 20 timed words in groups of up to 4.\nSound — 2 timed sound accents. The music ducks under the original audio."
+}

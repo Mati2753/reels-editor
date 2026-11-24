@@ -1,3 +1,4 @@
+import { MUSIC_FILES, SFX_FILES } from "../render/sounds";
 import type { z } from "zod";
 import { overlays as overlayRegistry, type OverlayRegistry } from "../remotion/overlays";
 import { IssueList, type Issue } from "./issues";
@@ -128,8 +129,10 @@ export function validateEdl(json: unknown, facts: Facts, env: ValidateEnv): Vali
 
   // ---- audio
   if (edl.audio.voice.denoise) issues.error("not-rendered-yet", "audio.voice.denoise", "noise reduction arrives in phase 5; set denoise to false");
-  if (edl.audio.music) issues.error("not-rendered-yet", "audio.music", "music is rendered from phase 5");
-  if (edl.audio.sfx.length > 0) issues.error("not-rendered-yet", "audio.sfx", "sound effects are rendered from phase 5");
+  if (edl.audio.music && !MUSIC_FILES.includes(edl.audio.music.file)) issues.error("audio-asset", "audio.music.file", "Choose a music file from the sound library.");
+  edl.audio.sfx.forEach((cue, i) => {
+    if (!SFX_FILES.includes(cue.file)) issues.error("audio-asset", `audio.sfx[${i}].file`, "Choose an effect from the sound library.");
+  });
 
   // ---- resolution: anchors, cuts inside words, framing, caption layout
   const { resolved, issues: resolveIssues, kept } = resolveEdl(edl, facts, env);
