@@ -42,6 +42,7 @@ export const RenderQualityInputSchema = z
       truePeakDbtp: z.number().nullish(),
       samplePeakDbfs: z.number().nullish(),
       clipping: z.array(clipped).max(50_000).nullish(),
+      captionSampleTimes: z.array(z.number().nonnegative()).max(5000).optional(),
       observedCaptions: z.array(observation).max(5000).nullish(),
     }),
   })
@@ -373,7 +374,9 @@ export function assessRender(input: RenderQualityInput): RenderQualityReport {
   } else {
     const seen = [...observed].sort((a, b) => a.start - b.start);
     let cursor = 0;
-    for (const item of [...authored].sort((a, b) => a.start - b.start)) {
+    const sampled = actual.captionSampleTimes
+      ? authored.filter(c => actual.captionSampleTimes!.some(t => t >= c.start && t < c.end)) : authored;
+    for (const item of [...sampled].sort((a, b) => a.start - b.start)) {
       if (item.end <= item.start) continue;
       while (cursor < seen.length && seen[cursor]!.end <= item.start) cursor++;
       let matched = false;
@@ -409,7 +412,7 @@ export function assessRender(input: RenderQualityInput): RenderQualityReport {
     }
     done(
       "caption-presence",
-      `Compared ${authored.length} authored cues with ${observed.length} rendered-picture detections.`,
+      `Compared ${sampled.length} of ${authored.length} authored cues with ${observed.length} rendered-picture detections.`,
     );
   }
   if (authored != null)

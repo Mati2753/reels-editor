@@ -1,5 +1,6 @@
 import path from "node:path";
-import { realpath } from "node:fs/promises";
+import { projectFile, projectMedia, MediaOperationSchema } from "./project-media";
+import { recallFeedback, FeedbackSchema } from "./feedback";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/server";
@@ -8,7 +9,7 @@ import { searchAssets, AssetSearchSchema } from "./assets";
 import { analyzeReferenceFile } from "./native-reference";
 import { inspectVisualAssets, VisualAssetOptionsSchema } from "./visual-assets";
 import { RenderQualityInputSchema, assessRender } from "./quality";
-import { exportOpenTimelineIO, PortableCutSchema } from "./timeline";
+import { exportOpenTimelineIO, PortableCutSchema, revisePortableCut, SceneRevisionSchema } from "./timeline";
 import {
   PexelsSearchInput,
   FreesoundSearchInput,
@@ -22,14 +23,7 @@ import { StyleSourceSchema, PreferencesSchema } from "./style-model";
 import { FormatSchema } from "../studio/format-model";
 
 const root = path.resolve(process.env.REELS_PROJECTS_ROOT ?? "projects");
-async function mediaFile(name: string) {
-  const base = await realpath(root),
-    file = await realpath(path.resolve(base, name)),
-    rel = path.relative(base, file);
-  if (!rel || rel === ".." || rel.startsWith(".." + path.sep) || path.isAbsolute(rel))
-    throw Error("Choose media inside the projects folder.");
-  return file;
-}
+const mediaFile = (name: string) => projectFile(root, name);
 serveStdio(() => {
   const server = new McpServer({ name: "reelforge-director", version: "1.0.0" });
   function tool<T extends z.ZodObject>(
@@ -69,6 +63,24 @@ serveStdio(() => {
     "Create a new style revision from editorial feedback.",
     z.object({ format: FormatSchema, preferences: PreferencesSchema, reason: z.string().min(1) }),
     (d) => reviseStyle(d.format, d.preferences, "ref-" + randomUUID(), d.reason),
+  );
+  tool(
+    "revise_timeline",
+    "Apply frame-accurate scene trims and removals to a new timeline revision.",
+    z.object({ cut: PortableCutSchema, changes: z.array(SceneRevisionSchema).min(1) }),
+    (d) => revisePortableCut(d.cut, d.changes),
+  );
+  tool(
+    "process_project_media",
+    "Extract a PNG frame, trim, reframe or apply a project-owned .cube LUT to a new clip.",
+    z.object({ file: z.string().min(1), action: MediaOperationSchema }),
+    (d) => projectMedia(root, d.file, d.action),
+  );
+  tool(
+    "recall_edit_feedback",
+    "Retrieve applicable director feedback by template family and presence of speech.",
+    z.object({ format: FormatSchema, hasSpeech: z.boolean(), history: FeedbackSchema }),
+    (d) => recallFeedback(d.history, d.format, d.hasSpeech),
   );
   tool(
     "export_otio",

@@ -1,6 +1,8 @@
+import { readScreenText } from "./ocr";
+import { feedbackChoices, rememberFeedback } from "../src/intelligence/feedback";
 import { reviseStyle } from "../src/intelligence/styles";
 import { revisePortableCut, exportOpenTimelineIO } from "../src/intelligence/timeline";
-import { readLocal, saveLocal, forgetLocal } from "./storage";
+import { readLocal, saveLocal, updateLocal } from "./storage";
 import { presets, FormatSchema } from "../src/studio/format-model";
 
 const helpers = new Set();
@@ -129,6 +131,13 @@ function paint() {
         return li;
       }),
     );
+  const memory = project.cut?.metadata?.memory;
+  $("feedback-panel").hidden = !memory;
+  $("feedback-choice").replaceChildren(
+    ...Object.entries(feedbackChoices)
+      .filter(([key]) => key !== "reject-insert" || project.cut?.metadata?.broll)
+      .map(([key, label]) => new Option(label, key)),
+  );
   $("timeline-tools").hidden = !project.cut;
   if (project.cut) {
     $("scene").replaceChildren(...project.cut.scenes.map((v, i) => new Option("Scene " + (i + 1), v.id)));
@@ -143,6 +152,8 @@ function settings() {
   return {
     ratio: $("ratio").value,
     quality: $("quality").value,
+    screen: $("screen").checked,
+    background: $("background").value,
     visual: $("visual").checked,
     broll: $("broll").checked,
     iterations: Number($("iterations").value),
@@ -183,7 +194,9 @@ function start(kind, files = null, revision = null) {
       ? displayName(input.name) + (inputs.length > 1 ? " + " + (inputs.length - 1) : "")
       : existing.title;
     worker = new Worker(new URL("edit-worker.js", document.baseURI));
+    const family = current().profile?.family ?? current().id;
     const onError = (msg) => {
+      void writeHistory({ date: new Date().toISOString(), family, kind, status: "failed", message: msg });
       stop();
       say(msg);
     };
@@ -192,6 +205,18 @@ function start(kind, files = null, revision = null) {
       if (thisRun !== token) return;
       if (data.model && data.port) {
         const port = data.port;
+        if (data.model === "ocr") {
+          port.onmessage = async ({ data: frames }) => {
+            try {
+              port.postMessage({ observations: await readScreenText(frames, helpers, () => thisRun === token) });
+            } catch {
+              port.postMessage({ error: "Local OCR is unavailable." });
+            } finally {
+              port.close();
+            }
+          };
+          return;
+        }
         if (!["speech", "vision"].includes(data.model)) {
           port.postMessage({ error: "Unknown model" });
           return;
@@ -267,6 +292,12 @@ function start(kind, files = null, revision = null) {
       };
       if (file) supplied = "";
       paint();
+      void writeHistory({
+        date: new Date().toISOString(),
+        status: "rendered",
+        cut: r.cut,
+        previousEdit: (!file && existing.cut?.metadata?.memory?.editId) || null,
+      });
       void saveLocal("last-result", { ...project, output: new Blob([r.bytes], { type: "video/mp4" }), example });
       stop();
       say("Your reel is ready. Press play to watch it or download your MP4.");
@@ -397,3 +428,33 @@ readLocal("last-result").then((last) => {
     paint();
   }
 });
+
+function writeHistory(record) {
+  return updateLocal("director-history", (history) => [...(history ?? []), record].slice(-30));
+}
+$("remember-feedback").onclick = async () => {
+  const meta = project.cut?.metadata;
+  if (!meta?.memory) return;
+  const entry = {
+    ...meta.memory,
+    choice: $("feedback-choice").value,
+    timestamp: new Date().toISOString(),
+    asset: meta.broll?.assetId ?? null,
+  };
+  const ok = await updateLocal("director-feedback", (history) => rememberFeedback(history, entry));
+  if (ok) await writeHistory({ status: "feedback", ...entry });
+  say(
+    ok
+      ? "Saved. The director will use this feedback on similar videos in this style."
+      : "Your browser could not save the feedback.",
+  );
+};
+$("clear-feedback").onclick = async () => {
+  const m = project.cut?.metadata?.memory;
+  if (!m) return;
+  const ok = await updateLocal("director-feedback", (rules) =>
+    (rules ?? []).filter((r) => r.family !== m.family || r.context !== m.context),
+  );
+  say(ok ? "Cleared the feedback for this style and footage type." : "Your browser could not clear the feedback.");
+};
+$("history").onclick = async () => download("director-history.json", (await readLocal("director-history")) ?? []);

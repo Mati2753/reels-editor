@@ -72,3 +72,23 @@ export async function fingerprint(file) {
   }
   return Array.from(state, (n) => n.toString(16).padStart(2, "0")).join("");
 }
+
+// Reads and writes inside one IndexedDB transaction, including across open tabs.
+export async function updateLocal(key, change) {
+  const db = await openStore();
+  if (!db) return false;
+  return new Promise((resolve) => {
+    const tx = db.transaction("studio", "readwrite");
+    const store = tx.objectStore("studio");
+    const request = store.get(key);
+    request.onsuccess = () => {
+      try {
+        store.put(change(request.result), key);
+      } catch {
+        tx.abort();
+      }
+    };
+    tx.oncomplete = () => resolve(true);
+    tx.onerror = tx.onabort = () => resolve(false);
+  });
+}

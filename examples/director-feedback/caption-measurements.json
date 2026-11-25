@@ -1,0 +1,72 @@
+{
+  "reference": "ocr-cards.mp4",
+  "samples": [
+    {
+      "contrastRatio": 18.422643411562806,
+      "at": 0.25,
+      "text": "MORNING LIGHT",
+      "confidence": 0.96,
+      "x": 0.23125,
+      "y": 0.6666666666666666,
+      "width": 0.540625,
+      "height": 0.08055555555555556
+    },
+    {
+      "contrastRatio": 18.422643411562806,
+      "at": 0.75,
+      "text": "MORNING LIGHT",
+      "confidence": 0.96,
+      "x": 0.23125,
+      "y": 0.6666666666666666,
+      "width": 0.540625,
+      "height": 0.08055555555555556
+    },
+    {
+      "contrastRatio": 18.422643411562806,
+      "at": 1.25,
+      "text": "MORNING LIGHT",
+      "confidence": 0.96,
+      "x": 0.23125,
+      "y": 0.6666666666666666,
+      "width": 0.540625,
+      "height": 0.08055555555555556
+    },
+    {
+      "contrastRatio": 18.57491121517663,
+      "at": 1.75,
+      "text": "QUIET FOREST",
+      "confidence": 0.95,
+      "x": 0.259375,
+      "y": 0.6666666666666666,
+      "width": 0.48125,
+      "height": 0.09722222222222222
+    },
+    {
+      "contrastRatio": 18.57491121517663,
+      "at": 2.25,
+      "text": "QUIET FOREST",
+      "confidence": 0.95,
+      "x": 0.259375,
+      "y": 0.6666666666666666,
+      "width": 0.48125,
+      "height": 0.09722222222222222
+    },
+    {
+      "contrastRatio": 18.57491121517663,
+      "at": 2.75,
+      "text": "QUIET FOREST",
+      "confidence": 0.95,
+      "x": 0.259375,
+      "y": 0.6666666666666666,
+      "width": 0.48125,
+      "height": 0.09722222222222222
+    }
+  ],
+  "layout": {
+    "center": 0.711111111111111,
+    "height": 0.08888888888888889,
+    "confidence": 0.955,
+    "words": 2,
+    "samples": 6
+  }
+}

@@ -67,11 +67,18 @@ export function findBeats(probe: Probe, facts: Analysis, format: Format, setting
     const shots = facts.shots.filter((s) => s.clip === clip.id);
     const sentences = facts.sentences.filter((s) => s.clip === clip.id);
     const levels = facts.loudness.find((l) => l.clip === clip.id)?.rms;
+    const profiles = format.profile?.references.filter((r) => r.cadenceSections) ?? [];
+    const sectionCadence = [0, 1, 2].map((section) => {
+      const ratios = profiles.map((r) => r.cadenceSections![section]! / r.cadence).sort((a, b) => a - b);
+      return (
+        format.shotSeconds * (ratios.length ? Math.max(0.65, Math.min(1.5, ratios[Math.floor(ratios.length / 2)]!)) : 1)
+      );
+    });
     for (const { start, end } of spans) {
       let cursor = start;
       while (cursor + 0.015 < end) {
         let next = end;
-        const cadence = format.shotSeconds;
+        const cadence = sectionCadence[Math.min(2, Math.floor((3 * cursor) / length))]!;
         if (settings.cuts && end - cursor > cadence * 1.35) {
           const ideal = cursor + cadence;
           const lo = cursor + cadence * 0.58;
@@ -202,9 +209,9 @@ export function buildEdit(
   if (total < MIN_DURATION - 0.01)
     throw new Error("The selected material is under five seconds. Choose longer footage or a longer cut.");
   const segments: ClipSegment[] = selected.map((b, i) => {
-    const emphasized = strength(b.text)>=1.5;
+    const emphasized = strength(b.text) >= 1.5;
     const scale = settings.motion && emphasized ? 1 + format.zoom : 1;
-    const move = settings.motion && (emphasized || b.shot || (!b.text && b.end-b.start>3));
+    const move = settings.motion && (emphasized || b.shot || (!b.text && b.end - b.start > 3));
     return {
       id: `s${i + 1}`,
       type: "clip",
@@ -228,12 +235,17 @@ export function buildEdit(
   segments.slice(1).forEach((seg, i) => {
     const prev = segments[i]!;
     const duration = { cut: 0, flash: 0.13, zoom: 0.2, fade: 0.36 }[format.transition];
-    const beat=selected[i+1]!;
-    const sceneChange=beat.shot || beat.clip!==selected[i]!.clip || Math.abs(beat.start-selected[i]!.end)>.25;
-    if (settings.motion && sceneChange && duration > 0 && Math.min(seg.out - seg.in, prev.out - prev.in) > duration + 0.1) {
+    const beat = selected[i + 1]!;
+    const sceneChange = beat.shot || beat.clip !== selected[i]!.clip || Math.abs(beat.start - selected[i]!.end) > 0.25;
+    if (
+      settings.motion &&
+      sceneChange &&
+      duration > 0 &&
+      Math.min(seg.out - seg.in, prev.out - prev.in) > duration + 0.1
+    ) {
       transitions.push({ between: [prev.id, seg.id], type: format.transition, duration });
     }
-    if (accents && (sceneChange || strength(beat.text)>=2)) {
+    if (accents && (sceneChange || strength(beat.text) >= 2)) {
       sfx.push({
         file: format.transition === "fade" ? "sfx/sweep.wav" : "sfx/pulse.wav",
         at: { segment: seg.id },

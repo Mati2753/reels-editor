@@ -600,14 +600,14 @@ export type BrollSelection = z.infer<typeof BrollSelectionSchema>;
 
 export function selectBroll(
   phrases: readonly z.input<typeof phraseSchema>[],
-  options: { engine?: AssetEngine } = {},
+  options: { engine?: AssetEngine; rejected?: readonly string[] } = {},
 ): BrollSelection | null {
   const candidates: BrollSelection[] = [];
   for (const phrase of z.array(phraseSchema).parse(phrases)) {
     if (phrase.end - phrase.start < 0.75) continue;
     const words = tokens(phrase.text);
     const viable = assetRegistry
-      .filter((a) => a.kind === "stock-image" && compatible(a, options.engine ?? "browser"))
+      .filter((a) => a.kind === "stock-image" && !options.rejected?.includes(a.id) && compatible(a, options.engine ?? "browser"))
       .map((asset) => ({ asset, matched: subjects(asset, words) }))
       .filter((m) => m.matched.length)
       .sort((a, b) => b.matched.length - a.matched.length);

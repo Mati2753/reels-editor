@@ -1,3 +1,6 @@
+import { trackScreen } from "../src/intelligence/screen";
+import { inferCaptionLayout } from "../src/intelligence/caption-layout";
+import { recallFeedback, feedbackChoices } from "../src/intelligence/feedback";
 import { findBeats, localSelection, buildEdit } from "../src/studio/director";
 import { importSrt } from "../src/studio/subtitles";
 import { median } from "../src/studio/format-model";
@@ -94,6 +97,37 @@ async function getVisualContext(core, run, m) {
   await saveLocal(key, observations);
   return observations;
 }
+async function inspectText(core, run, media, times) {
+  const frames = [];
+  for (const at of [...new Set(times)].slice(0, 8)) {
+    run([
+      "-ss",
+      String(at),
+      "-i",
+      media.input,
+      "-frames:v",
+      "1",
+      "-vf",
+      "scale=640:640:force_original_aspect_ratio=decrease",
+      "-threads",
+      "1",
+      "-c:v",
+      "png",
+      "text-sample.png",
+    ]);
+    const bytes = core.FS.readFile("text-sample.png");
+    core.FS.unlink("text-sample.png");
+    const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+    frames.push({ at, bytes, width: view.getUint32(16), height: view.getUint32(20) });
+  }
+  return frames.length
+    ? model(
+        "ocr",
+        frames,
+        frames.map((f) => f.bytes.buffer),
+      )
+    : [];
+}
 function fullScaleIntervals(samples) {
   const spans = [];
   if (!samples) return null;
@@ -183,7 +217,7 @@ function fromRevision(cut, plan, bindings) {
 }
 self.onmessage = async ({ data }) => {
   try {
-    const { kind, settings = {}, format, title, supplied, example } = data;
+    const { kind, settings = {}, format: selectedFormat, title, supplied, example } = data;
     const files = data.files ?? [data.file];
     if (!files.length) throw Error("Choose at least one video.");
     progress("Opening the editing engine", 0.02);
@@ -245,6 +279,31 @@ self.onmessage = async ({ data }) => {
         0.08 + (0.13 * i) / files.length,
       );
       const m = inspect(core, run, input, clip, { keepFrames: kind === "learn", needSamples: kind !== "learn" });
+      if (kind !== "learn" && settings.screen) {
+        run([
+          "-i",
+          input,
+          "-an",
+          "-vf",
+          "fps=4,scale=48:32",
+          "-threads",
+          "1",
+          "-pix_fmt",
+          "rgb24",
+          "-f",
+          "rawvideo",
+          "screen.rgb",
+        ]);
+        m.screen = trackScreen(core.FS.readFile("screen.rgb"), 48, 32, 4, settings.background);
+        core.FS.unlink("screen.rgb");
+        notes.push(
+          m.screen
+            ? "Tracked the foreground against the measured studio screen in " + file.name + "."
+            : "Kept the original background in " +
+                file.name +
+                " because a consistent green or blue screen was not detected.",
+        );
+      }
       m.name = file.name;
       m.bytes = file.size;
       m.digest = digest;
@@ -257,6 +316,20 @@ self.onmessage = async ({ data }) => {
       }
       if (kind === "learn") {
         const item = referenceCard(core, run, m, digest, file.name);
+        let visibleText = [];
+        try {
+          progress("Reading text in the reference", 0.29);
+          visibleText = await inspectText(
+            core,
+            run,
+            m,
+            Array.from({ length: 6 }, (_, j) => (m.seconds * (j + 0.5)) / 6),
+          );
+          item.card.captionLayout = inferCaptionLayout(visibleText);
+          item.card.cueWords ??= item.card.captionLayout?.words ?? null;
+        } catch {
+          notes.push("Reference text recognition was unavailable.");
+        }
         refs.push(item.card);
         evidences.push({
           id: digest,
@@ -264,6 +337,7 @@ self.onmessage = async ({ data }) => {
           analysis: m.evidence,
           frames: m.visual.frames,
           embeddedSubtitles: item.subtitleCues,
+          visibleText,
           semantics: m.semantic ?? [],
         });
         if (!image) {
@@ -327,6 +401,16 @@ self.onmessage = async ({ data }) => {
           ),
         );
     }
+    const memory = recallFeedback(await readLocal("director-feedback"), selectedFormat, facts.words.length > 0);
+    const format = memory.format;
+    const layouts = format.profile?.references.flatMap((r) => (r.captionLayout ? [r.captionLayout] : [])) ?? [];
+    if (layouts.length)
+      settings.captionStyle = {
+        center: median(layouts.map((l) => l.center)),
+        height: median(layouts.map((l) => l.height)),
+      };
+    if (memory.position) settings.captionStyle = { ...settings.captionStyle, position: memory.position };
+    for (const rule of memory.rules) notes.push("Remembered for this style: " + feedbackChoices[rule.choice] + ".");
     const probe = {
       clips: media.map((m) => ({
         id: m.clip,
@@ -361,8 +445,15 @@ self.onmessage = async ({ data }) => {
       settings,
     );
     const edl = data.revision ? fromRevision(data.revision, initial, bindings) : initial;
+    if (memory.stationary) {
+      for (const s of edl.segments) s.framing = { scale: 1, origin: { x: 0.5, y: 0.5 } };
+      edl.transitions = edl.transitions.filter((t) => t.type !== "zoom");
+    }
     // Portable cuts and recording both use half-open source-frame intervals.
-    for(const seg of edl.segments){seg.in=Math.round(seg.in*30)/30;seg.out=Math.round(seg.out*30)/30;}
+    for (const seg of edl.segments) {
+      seg.in = Math.round(seg.in * 30) / 30;
+      seg.out = Math.round(seg.out * 30) / 30;
+    }
     const dimensions = data.revision
       ? { width: data.revision.output.width, height: data.revision.output.height }
       : outputSize(settings.ratio, settings.quality);
@@ -382,7 +473,7 @@ self.onmessage = async ({ data }) => {
     const phrases = timelinePhrases(edl, facts.sentences);
     const broll =
       settings.broll !== false && format.profile?.preferences.broll !== false
-        ? selectBroll(phrases, { engine: "browser" })
+        ? selectBroll(phrases, { engine: "browser", rejected: memory.rejected })
         : null;
     const iterations = [],
       limit = Math.max(0, Math.min(2, Number(settings.iterations ?? 1)));
@@ -391,6 +482,9 @@ self.onmessage = async ({ data }) => {
       previous = null,
       report = null;
     for (let i = 0; i <= limit; i++) {
+      const priorRender = rendered,
+        priorReport = report,
+        priorAdjustment = iterations.at(-1)?.adjustment;
       rendered = await render(core, run, edl, facts, media, asset, progress, {
         dimensions,
         grade: { ...grade, brightness: adjustment.brightness },
@@ -401,6 +495,34 @@ self.onmessage = async ({ data }) => {
       progress("Checking the finished picture and sound", 0.95);
       const measured = inspect(core, run, "reel.mp4", "result", { keepFrames: true, needSamples: true });
       const pictures = measured.visual.frames.map((f) => f.luma).filter((n) => n !== null);
+      let observedCaptions, captionSampleTimes;
+      if (rendered.captions.length) {
+        const cues = rendered.captions;
+        const indices = [...new Set([0, Math.floor(cues.length / 2), cues.length - 1])];
+        try {
+          captionSampleTimes = indices.map((i) => (cues[i].start + cues[i].end) / 2);
+          const lines = await inspectText(core, run, measured, captionSampleTimes);
+          const captionCenter =
+            settings.captionStyle?.position === "center" ? 0.52 : (settings.captionStyle?.center ?? 0.71);
+          observedCaptions = lines
+            .filter((l) => Math.abs(l.y + l.height / 2 - captionCenter) < 0.17)
+            .map((l) => ({
+              start: l.at,
+              end: Math.min(measured.duration, l.at + 1 / 30),
+              text: l.text,
+              confidence: l.confidence,
+              contrastRatio: l.contrastRatio,
+              bounds: {
+                x: l.x * dimensions.width,
+                y: l.y * dimensions.height,
+                width: l.width * dimensions.width,
+                height: l.height * dimensions.height,
+              },
+            }));
+        } catch {
+          notes.push("Rendered subtitle text could not be independently sampled.");
+        }
+      }
       report = assessRender({
         expected: {
           ...dimensions,
@@ -418,12 +540,23 @@ self.onmessage = async ({ data }) => {
           frames: measured.visual.frameCount,
           medianLuma: pictures.length ? median(pictures) / 255 : null,
           cutTimes: measured.visual.cuts.map((c) => c.at).filter((t) => t > 0 && t < measured.duration),
+          observedCaptions,
+          captionSampleTimes,
           truePeakDbtp: measured.truePeakDbtp,
           samplePeakDbfs: measured.evidence.audio?.samplePeakDbfs,
           clipping: fullScaleIntervals(measured.raw),
         },
       });
-      iterations.push({ iteration: i, adjustment, report });
+      iterations.push({ iteration: i, adjustment, captionStyle: settings.captionStyle, report });
+      if (priorReport && priorReport.issues.length < report.issues.length) {
+        rendered = priorRender;
+        report = priorReport;
+        adjustment = priorAdjustment;
+        settings.captionStyle = iterations.at(-2)?.captionStyle;
+        iterations.at(-1).discarded = true;
+        notes.push("Restored the earlier export because the revision introduced additional measured issues.");
+        break;
+      }
       const repair = suggestRepair(report, {
         ...adjustment,
         iteration: i,
@@ -431,19 +564,28 @@ self.onmessage = async ({ data }) => {
         ...(previous ? { previous } : {}),
         budget: { spent: 0, next: 0, limit: 0 },
       });
-      if (!repair) break;
+      const improve =
+        i < limit && !settings.captionStyle?.repairWindows
+          ? report.issues
+              .filter((q) => ["caption-presence", "caption-contrast"].includes(q.code))
+              .map((q) => ({ start: q.start, end: q.end }))
+          : [];
+      if (!repair && !improve.length) break;
+      if (improve.length) settings.captionStyle = { ...settings.captionStyle, repairWindows: improve };
       previous = report.metrics;
-      adjustment = { brightness: repair.brightness, gainDb: repair.gainDb };
+      if (repair) adjustment = { brightness: repair.brightness, gainDb: repair.gainDb };
       progress("Revising picture or sound from the measured result", 0.45);
     }
     const metadata = JSON.parse(
       JSON.stringify({
         sourceDigests: signature,
+        memory: { family: memory.family, context: memory.context, applied: memory.rules, editId: crypto.randomUUID() },
         settings,
         decisions: reasons,
         grade: { ...grade, ...adjustment },
         broll,
         effects: { segments: edl.segments, transitions: edl.transitions, overlays: edl.overlays, audio: edl.audio },
+        screens: media.filter((m) => m.screen).map((m) => ({ clip: m.clip, ...m.screen })),
         semanticObservations: media.flatMap((m) => m.semantic ?? []),
         referenceStyle: format.id,
         referenceRevision: format.profile?.revision,
@@ -466,7 +608,8 @@ self.onmessage = async ({ data }) => {
     });
     if (data.revision) cut = { ...cut, revision: data.revision.revision };
     notes.unshift(...decisions.map((d) => d.detail));
-    for (const issue of report.issues) notes.push(issue.start.toFixed(1)+"–"+issue.end.toFixed(1)+"s · "+issue.basis);
+    for (const issue of report.issues)
+      notes.push(issue.start.toFixed(1) + "–" + issue.end.toFixed(1) + "s · " + issue.basis);
     if (broll) notes.push("B-roll: " + broll.reason);
     notes.push(
       "Checked " +

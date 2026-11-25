@@ -208,7 +208,7 @@ export function buildPortableCut(input: BuildPortableCutInput): PortableCut {
   });
 }
 
-const changeSchema = z
+export const SceneRevisionSchema = z
   .object({
     sceneId: id,
     inFrame: frame.optional(),
@@ -223,12 +223,12 @@ const changeSchema = z
         : change.inFrame !== undefined || change.outFrame !== undefined,
     "Specify new source frames or remove the scene.",
   );
-export type SceneRevision = z.infer<typeof changeSchema>;
+export type SceneRevision = z.infer<typeof SceneRevisionSchema>;
 
 /** All changes are atomic. A retained input package remains a fully playable earlier revision. */
 export function revisePortableCut(input: PortableCut, revisions: readonly SceneRevision[]): PortableCut {
   const cut = PortableCutSchema.parse(input);
-  const changes = z.array(changeSchema).min(1).parse(revisions);
+  const changes = z.array(SceneRevisionSchema).min(1).parse(revisions);
   const byId = new Map(changes.map((change) => [change.sceneId, change]));
   if (byId.size !== changes.length) throw new Error("A revision can change a scene only once.");
   const sceneIds = new Set(cut.scenes.map((scene) => scene.id));

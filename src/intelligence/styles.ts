@@ -39,6 +39,15 @@ export function describeReference(
     height: source.height,
     shots: lengths.length,
     cadence: median(lengths),
+    cadenceSections:
+      lengths.length >= 6
+        ? [0, 1, 2].map((section) => {
+            const local = lengths.filter(
+              (span, i) => Math.floor((3 * (times[i]! + span / 2)) / source.duration) === section,
+            );
+            return local.length >= 2 ? median(local) : median(lengths);
+          })
+        : undefined,
     pauseShare,
     motion: visual.motion.median,
     flashes: visual.transitions.filter((t) => t.kind === "flash").length,

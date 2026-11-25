@@ -12,12 +12,22 @@ export const StyleSourceSchema = z.object({
   height: z.number().positive(),
   shots: z.number().int().positive(),
   cadence: z.number().positive(),
+  cadenceSections: z.array(z.number().positive()).length(3).optional(),
   pauseShare: optionalMeasurement,
   motion: optionalMeasurement,
   flashes: z.number().int().nonnegative(),
   fades: z.number().int().nonnegative(),
   lufs: optionalMeasurement,
   cueWords: optionalMeasurement,
+  captionLayout: z
+    .object({
+      center: unit,
+      height: unit,
+      confidence: unit,
+      words: z.number().positive(),
+      samples: z.number().int().positive(),
+    })
+    .nullish(),
   tempo: optionalMeasurement,
   medianLuma: optionalMeasurement.optional(),
   luma: optionalMeasurement,

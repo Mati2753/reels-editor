@@ -147,6 +147,8 @@
                 <label class="option"
                   ><input type="checkbox" id="visual" /> Analyze representative frames with the visual model</label
                 >
+                <label class="option"><input type="checkbox" id="screen" /> Replace a green or blue studio backdrop and follow the subject</label>
+                <label class="option">Backdrop color <input type="color" id="background" value="#26334a" /></label>
                 <label class="option"
                   >Automatic quality revisions
                   <select id="iterations">
@@ -172,6 +174,15 @@
               </div>
             </details>
             <button id="remake" class="soft wide">Re-edit this video</button>
+            <details id="feedback-panel" hidden>
+              <summary>Teach the director</summary>
+              <div class="options">
+                <label>For future videos like this one <select id="feedback-choice"></select></label>
+                <button class="soft" id="remember-feedback">Save my feedback</button>
+                <button class="link" id="clear-feedback">Forget feedback for this style and footage type</button>
+                <button class="link" id="history">Download edit history</button>
+              </div>
+            </details>
             <div class="notes">
               <h3>Director’s notes</h3>
               <ul id="notes">

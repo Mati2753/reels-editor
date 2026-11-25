@@ -6,6 +6,20 @@ import { fileURLToPath } from "node:url";
 const root = fileURLToPath(new URL("../", import.meta.url));
 const out = path.resolve(process.argv[2] || path.join(root, "dist/browser"));
 await mkdir(path.join(out, "assets"), { recursive: true });
+const ocr = path.join(out, "assets/ocr");
+await mkdir(ocr, { recursive: true });
+for (const name of ["tesseract-core-lstm.wasm.js", "tesseract-core-simd-lstm.wasm.js", "LICENSE"]) {
+  await cp(path.join(root, "node_modules/tesseract.js-core", name), path.join(ocr, name));
+}
+await cp(path.join(root, "node_modules/tesseract.js/dist/worker.min.js"), path.join(ocr, "worker.min.js"));
+await cp(
+  path.join(root, "node_modules/tesseract.js/dist/worker.min.js.LICENSE.txt"),
+  path.join(ocr, "worker.min.js.LICENSE.txt"),
+);
+await cp(
+  path.join(root, "node_modules/@tesseract.js-data/eng/4.0.0_best_int/eng.traineddata.gz"),
+  path.join(ocr, "eng.traineddata.gz"),
+);
 for (const file of ["index.html", "studio.css", "speech.js", "vision.js"]) {
   await cp(path.join(root, "web", file), path.join(out, file));
 }

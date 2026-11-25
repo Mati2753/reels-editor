@@ -14,7 +14,19 @@ function drawText(core, id, event, kind, width, height, captionStyle) {
   }
   const longest = Math.max(1, ...lines.map((l) => [...l].length));
   const unit = Math.min(width, height) / 720;
-  const size = Math.max(12, Math.round(Math.min((title ? 55 : 46) * unit, (width - 0.15 * width) / (longest * 0.72))));
+  const size = Math.max(
+    12,
+    Math.round(
+      Math.min(
+        title
+          ? 55 * unit
+          : captionStyle?.height
+            ? Math.min(height * 0.095, Math.max(22 * unit, height * captionStyle.height * 1.3))
+            : 46 * unit,
+        (width - 0.15 * width) / (longest * 0.72),
+      ),
+    ),
+  );
   const file = "text-" + id + ".txt";
   core.FS.writeFile(file, lines.join("\n"));
   const start = time(event.start),
@@ -28,13 +40,14 @@ function drawText(core, id, event, kind, width, height, captionStyle) {
     ink +
     ":fontsize=" +
     size +
+    (captionStyle?.backplate && !title ? ":box=1:boxcolor=black@0.88:boxborderw=6" : "") +
     ":borderw=3:bordercolor=" +
     shadow +
     "@0.8:shadowx=0:shadowy=2:line_spacing=6:x=(w-text_w)/2" +
     ":y='" +
     (title
       ? "h*0.155+12*exp(-13*(t-" + start + "))"
-      : "h*" + (captionStyle?.position === "center" ? 0.52 : 0.71) + "-text_h/2") +
+      : "h*" + (captionStyle?.position === "center" ? 0.52 : (captionStyle?.center ?? 0.71)) + "-text_h/2") +
     "'" +
     ":enable='between(t," +
     start +
@@ -102,12 +115,43 @@ export async function render(core, run, edl, facts, sources, getAsset, progress,
     let z = initial + "+" + (final - initial).toFixed(5) + "*(1-cos(PI*on/" + Math.max(1, frameCount - 1) + "))/2";
     if (transition?.type === "zoom")
       z += "+0.12*max(0,1-on/" + Math.max(1, Math.round(transition.duration * fps)) + ")";
+    const screen = source.screen;
+    const crop = (axis) => {
+      const dim = axis === "x" ? "iw" : "ih";
+      const out = axis === "x" ? width : height;
+      const samples = screen.centers.filter((p) => p.at >= s.in && p.at <= s.out);
+      if (!samples.length) return "(" + dim + "-" + out + ")/2";
+      // Linear interpolation between a bounded number of measured centers.
+      const step = Math.max(1, Math.ceil(samples.length / 12));
+      const points = samples.filter((_, j) => j % step === 0 || j === samples.length - 1);
+      let expr = points.at(-1)[axis].toFixed(4);
+      for (let j = points.length - 2; j >= 0; j--) {
+        const a = points[j],
+          b = points[j + 1];
+        const k = time(Math.max(0.001, b.at - a.at));
+        expr =
+          "if(lt(t," +
+          time(b.at - s.in) +
+          ")," +
+          a[axis].toFixed(4) +
+          "+" +
+          (b[axis] - a[axis]).toFixed(4) +
+          "*clip((t-" +
+          time(a.at - s.in) +
+          ")/" +
+          k +
+          ",0,1)," +
+          expr +
+          ")";
+      }
+      return "clip(" + dim + "*(" + expr + ")-" + out + "/2,0," + dim + "-" + out + ")";
+    };
     const filters = [
       "setpts=PTS-STARTPTS",
       "fps=" + fps + ":start_time=0",
       "tpad=stop_mode=clone:stop_duration=0.2",
       "scale=" + width + ":" + height + ":force_original_aspect_ratio=increase:force_divisible_by=2",
-      "crop=" + width + ":" + height,
+      "crop=" + width + ":" + height + (screen ? ":x='" + crop("x") + "':y='" + crop("y") + "'" : ""),
       "setsar=1",
     ];
     if (initial !== 1 || final !== 1 || transition?.type === "zoom")
@@ -156,7 +200,12 @@ export async function render(core, run, edl, facts, sources, getAsset, progress,
         ),
       );
     for (const [j, cue] of page.entries())
-      filters.push(drawText(core, "caption-" + j, cue, "caption", width, height, style));
+      filters.push(
+        drawText(core, "caption-" + j, cue, "caption", width, height, {
+          ...style,
+          backplate: style?.repairWindows?.some((w) => w.end > cue.start + cursor && w.start < cue.end + cursor),
+        }),
+      );
     for (const [j, overlay] of edl.overlays.entries()) {
       if (overlay.component !== "BigNumber") continue;
       const word = facts.words.find((w) => w.id === overlay.at.word);
@@ -180,30 +229,39 @@ export async function render(core, run, edl, facts, sources, getAsset, progress,
     const pictureFilters = firstDraw < 0 ? filters : filters.slice(0, firstDraw);
     const titles = firstDraw < 0 ? [] : filters.slice(firstDraw);
     const command = ["-ss", time(s.in), "-threads", "1", "-i", source.input];
-    if (showInsert) {
-      if (!core.FS.analyzePath(panel.file).exists) core.FS.writeFile(panel.file, await getAsset(panel.file));
-      command.push("-loop", "1", "-framerate", "30", "-i", panel.file);
-      const start = time(Math.max(0, panel.start - cursor)),
-        end = time(Math.min(seconds, panel.end - cursor));
-      const graph =
-        "[0:v]" +
-        pictureFilters.join(",") +
-        "[base];[1:v]scale=" +
-        width +
-        ":" +
-        height +
-        ":force_original_aspect_ratio=increase,crop=" +
-        width +
-        ":" +
-        height +
-        ",setsar=1[photo];[base][photo]overlay=enable='between(t," +
-        start +
-        "," +
-        end +
-        ")'" +
-        (titles.length ? "," + titles.join(",") : "") +
-        "[out]";
-      command.push("-filter_complex", graph, "-map", "[out]");
+    if (screen || showInsert) {
+      let graph = "[0:v]" + pictureFilters.join(",");
+      if (screen) {
+        graph +=
+          ",format=yuva444p,chromakey=" +
+          screen.color.replace("#", "0x") +
+          ":0.14:0.06[foreground];color=c=" +
+          screen.background.replace("#", "0x") +
+          ":s=" +
+          width +
+          "x" +
+          height +
+          ":r=30[bg];[bg][foreground]overlay=shortest=1";
+      }
+      if (showInsert) {
+        if (!core.FS.analyzePath(panel.file).exists) core.FS.writeFile(panel.file, await getAsset(panel.file));
+        command.push("-loop", "1", "-framerate", "30", "-i", panel.file);
+        graph +=
+          "[base];[1:v]scale=" +
+          width +
+          ":" +
+          height +
+          ":force_original_aspect_ratio=increase,crop=" +
+          width +
+          ":" +
+          height +
+          ",setsar=1[photo];[base][photo]overlay=enable='between(t," +
+          time(Math.max(0, panel.start - cursor)) +
+          "," +
+          time(Math.min(seconds, panel.end - cursor)) +
+          ")'";
+      }
+      command.push("-filter_complex", graph + (titles.length ? "," + titles.join(",") : "") + "[out]", "-map", "[out]");
     } else command.push("-map", "0:v:0", "-vf", filters.join(","));
     command.push(
       "-an",
@@ -272,8 +330,24 @@ export async function render(core, run, edl, facts, sources, getAsset, progress,
   progress("Mixing the sound and finishing your MP4", 0.93);
   core.FS.writeFile("scenes.txt", parts.join("\n") + "\n");
   // Rebuild packet timestamps from the continuous frame count. MP4 concat offsets are rounded to milliseconds.
-  run(["-f","concat","-safe","0","-i","scenes.txt","-map","0:v:0","-c:v","copy","-bsf:v","h264_mp4toannexb","-f","h264","joined.h264"]);
-  const inputs=["-framerate",String(fps),"-f","h264","-i","joined.h264"];
+  run([
+    "-f",
+    "concat",
+    "-safe",
+    "0",
+    "-i",
+    "scenes.txt",
+    "-map",
+    "0:v:0",
+    "-c:v",
+    "copy",
+    "-bsf:v",
+    "h264_mp4toannexb",
+    "-f",
+    "h264",
+    "joined.h264",
+  ]);
+  const inputs = ["-framerate", String(fps), "-f", "h264", "-i", "joined.h264"];
   const filters = [];
   let next = 1;
   const audioInputs = new Map();

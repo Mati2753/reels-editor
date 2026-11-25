@@ -210,3 +210,9 @@ Le format appris conserve la cadence mesurée des plans, le mouvement entre imag
 ### Reference-driven browser direction
 
 The browser keeps source frame measurements and reference-relative cut candidates. A visual change or spoken emphasis can justify movement. Silence, source changes and supported changes of scene guide joins and accents. A measured reference takes precedence over the built-in preset. A licensed illustration requires matching words in retained speech. The portable cut records its source and reason. Unknown narrative intent remains available for human review.
+
+For references with at least six shots, compare the opening, middle and closing thirds with each reference’s typical shot length. Apply the observed ratios within 0.65–1.5 of the template pace. Speech boundaries still constrain individual cuts.
+
+English OCR samples six reference frames. Two different high-confidence lines in the same centered band across distinct times can guide subtitle placement, apparent size and grouping. A static logo alone supplies no caption rule. Three evenly distributed authored cues are sampled after rendering. A failed reading or low local contrast can trigger a backplate on the affected cue within the selected iteration limit.
+
+A viewer can give feedback from a rendered cut. Retrieve it for subsequent projects sharing a template family and speech presence. A still camera request removes programmed zooms and zoom transitions. A rejected illustration cannot be selected again within that scope.
