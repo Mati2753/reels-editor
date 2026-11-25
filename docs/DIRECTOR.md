@@ -206,3 +206,7 @@ Uniquement ce qu'il ne peut pas déduire : l'objectif du Reel (éduquer, vendre,
 ## Direction automatique du studio
 
 Le format appris conserve la cadence mesurée des plans, le mouvement entre images, les flashes, le niveau audio et les groupes de mots des sous-titres intégrés. La direction utilise ces faits pour régler le rythme, les zooms, les transitions, les pages de sous-titres et le mix. Un titre ouvre le montage. Les chiffres parlés peuvent déclencher un `BigNumber` ancré au mot. Les coupes respectent les mots et privilégient les groupes de phrases quand la durée impose une sélection. Les raisons du montage se trouvent dans `edl.notes` et dans le panneau de décisions du studio. Les mesures et limites sont décrites dans `docs/STUDIO.md`.
+
+### Reference-driven browser direction
+
+The browser keeps source frame measurements and reference-relative cut candidates. A visual change or spoken emphasis can justify movement. Silence, source changes and supported changes of scene guide joins and accents. A measured reference takes precedence over the built-in preset. A licensed illustration requires matching words in retained speech. The portable cut records its source and reason. Unknown narrative intent remains available for human review.

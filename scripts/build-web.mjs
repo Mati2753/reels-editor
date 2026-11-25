@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 const root = fileURLToPath(new URL("../", import.meta.url));
 const out = path.resolve(process.argv[2] || path.join(root, "dist/browser"));
 await mkdir(path.join(out, "assets"), { recursive: true });
-for (const file of ["index.html", "studio.css", "speech.js"]) {
+for (const file of ["index.html", "studio.css", "speech.js", "vision.js"]) {
   await cp(path.join(root, "web", file), path.join(out, file));
 }
 for (const file of [
@@ -33,6 +33,7 @@ for (const file of [
 ]) {
   await cp(path.join(root, "assets", file), path.join(out, "assets", path.basename(file)));
 }
+await cp(path.join(root, "assets/library"), path.join(out, "assets"), { recursive: true });
 await cp(path.join(root, "node_modules/@ffmpeg/core/dist/umd/ffmpeg-core.js"), path.join(out, "ffmpeg-core.js"));
 // Each part is below the static host's single-asset limit. The editor loads these only on first use.
 const binary = await readFile(path.join(root, "node_modules/@ffmpeg/core/dist/umd/ffmpeg-core.wasm"));

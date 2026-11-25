@@ -1,77 +1,196 @@
 import { findBeats, localSelection, buildEdit } from "../src/studio/director";
 import { importSrt } from "../src/studio/subtitles";
 import { median } from "../src/studio/format-model";
-import { inspect, learn, analysisFor } from "./facts";
+import { makeStyle, matchGrade, outputSize } from "../src/intelligence/styles";
+import { buildPortableCut, PortableCutSchema, verifyPortableSources } from "../src/intelligence/timeline";
+import { assessRender, suggestRepair } from "../src/intelligence/quality";
+import { selectBroll } from "../src/intelligence/assets";
+import { inspect, referenceCard, analysisFor } from "./facts";
+import { fingerprint, readLocal, saveLocal } from "./storage";
 import { render } from "./render";
-
 const progress = (stage, value) => self.postMessage({ stage, value });
-const getAsset = async (name) => {
+const asset = async (name) => {
   const res = await fetch(new URL("assets/" + name, self.location.href));
   if (!res.ok) throw Error("A studio asset could not load. Please try again.");
   return new Uint8Array(await res.arrayBuffer());
 };
-
-async function loadVideoEngine() {
-  const coreURL = new URL("ffmpeg-core.js", self.location.href).href;
-  importScripts(coreURL);
-  const parts = await Promise.all([getAsset("engine-0.bin"), getAsset("engine-1.bin")]);
-  const wasmBinary = new Uint8Array(parts[0].length + parts[1].length);
-  wasmBinary.set(parts[0]);
-  wasmBinary.set(parts[1], parts[0].length);
-  const locator = btoa(JSON.stringify({ wasmURL: coreURL.replace(/\.js$/, ".wasm"), workerURL: "" }));
-  return self.createFFmpegCore({ wasmBinary, mainScriptUrlOrBlob: coreURL + "#" + locator });
+async function engine() {
+  const url = new URL("ffmpeg-core.js", self.location.href).href;
+  importScripts(url);
+  const [a, b] = await Promise.all([asset("engine-0.bin"), asset("engine-1.bin")]);
+  const bytes = new Uint8Array(a.length + b.length);
+  bytes.set(a);
+  bytes.set(b, a.length);
+  const locate = btoa(JSON.stringify({ wasmURL: url.replace(/\.js$/, ".wasm"), workerURL: "" }));
+  return self.createFFmpegCore({ wasmBinary: bytes, mainScriptUrlOrBlob: url + "#" + locate });
 }
-
-async function listen(samples) {
-  const child = new Worker(new URL("speech.js", self.location.href), { type: "module" });
+async function model(name, input, transfer = []) {
+  const channel = new MessageChannel(),
+    child = channel.port1;
+  self.postMessage({ model: name, port: channel.port2 }, [channel.port2]);
   try {
     return await new Promise((resolve, reject) => {
       let timer;
       const wait = () => {
         clearTimeout(timer);
-        timer = setTimeout(() => reject(Error("Speech recognition timed out.")), 120000);
+        timer = setTimeout(() => reject(Error("Model timed out.")), 150000);
       };
       wait();
       child.onmessage = ({ data }) => {
         if (data.stage) {
-          progress(data.stage, 0.29);
+          progress(data.stage, 0.28);
           wait();
           return;
         }
         clearTimeout(timer);
-        if (data.error) reject(Error(data.error));
-        else resolve(data.words ?? []);
+        data.error ? reject(Error(data.error)) : resolve(data.words ?? data.observations);
       };
       child.onerror = (e) => {
         clearTimeout(timer);
         reject(Error(e.message));
       };
-      child.postMessage(samples, [samples.buffer]);
+      child.postMessage(input, transfer);
     });
   } finally {
-    child.terminate();
+    child.close();
   }
 }
-
-self.onmessage = async ({ data: { kind, file, format, settings, title, supplied, example } }) => {
+async function getVisualContext(core, run, m) {
+  const key = "visual:clip-533-v1:" + m.digest;
+  const cached = await readLocal(key);
+  if (cached) return cached;
+  const frames = [];
+  // Inspect the middle of the first, middle, and final detected shots; each inference retains its timestamp.
+  const picks = Array.from(new Set([0, Math.floor(m.shots.length / 2), m.shots.length - 1]));
+  for (const i of picks) {
+    const shot = m.shots[i],
+      at = (shot.start + shot.end) / 2;
+    run([
+      "-ss",
+      String(at),
+      "-i",
+      m.input,
+      "-map",
+      "0:v:0",
+      "-frames:v",
+      "1",
+      "-vf",
+      "scale=224:224:force_original_aspect_ratio=decrease,pad=224:224:(ow-iw)/2:(oh-ih)/2",
+      "-pix_fmt",
+      "rgb24",
+      "-f",
+      "rawvideo",
+      "vision.rgb",
+    ]);
+    const rgb = core.FS.readFile("vision.rgb");
+    if (rgb.length === 224 * 224 * 3) frames.push({ clip: m.clip, at, width: 224, height: 224, rgb: rgb.buffer });
+  }
+  if (!frames.length) return [];
+  const observations = await model(
+    "vision",
+    frames,
+    frames.map((f) => f.rgb),
+  );
+  await saveLocal(key, observations);
+  return observations;
+}
+function fullScaleIntervals(samples) {
+  const spans = [];
+  if (!samples) return null;
+  let start = -1,
+    count = 0;
+  for (let i = 0; i <= samples.length; i++) {
+    if (i < samples.length && Math.abs(samples[i]) >= 1) {
+      if (start < 0) start = i;
+      count++;
+      continue;
+    }
+    if (start >= 0) {
+      const last = spans.at(-1);
+      if (last && start / 16000 - last.end < 0.05) {
+        last.end = i / 16000;
+        last.samples += count;
+      } else spans.push({ start: start / 16000, end: i / 16000, samples: count });
+      start = -1;
+      count = 0;
+    }
+  }
+  return spans;
+}
+function timelinePhrases(edl, sentences) {
+  let cursor = 0;
+  const phrases = [];
+  for (const seg of edl.segments) {
+    for (const q of sentences.filter((s) => s.clip === seg.clip && s.end > seg.in && s.start < seg.out)) {
+      const start = cursor + Math.max(q.start - seg.in, 0),
+        end = cursor + Math.min(q.end, seg.out) - seg.in;
+      if (end - start > 0.5) phrases.push({ start, end, text: q.text });
+    }
+    cursor += seg.out - seg.in;
+  }
+  return phrases;
+}
+function sceneReasons(edl, beats, media) {
+  return edl.segments.map((s, i) => {
+    const b = beats.find((b) => b.clip === s.clip && Math.abs(b.start - s.in) < 0.06);
+    const why = b?.text
+      ? /[?!\d]/.test(b.text)
+        ? "Spoken question, number or emphasis"
+        : "Preserves a continuous spoken phrase"
+      : b?.shot
+        ? "A measured picture change opens this scene"
+        : "Retains source order within the target duration";
+    return {
+      scene: s.id,
+      clip: s.clip,
+      sourceIn: s.in,
+      sourceOut: s.out,
+      decision: "keep",
+      basis: why,
+      words: b?.text ?? "",
+      framing: s.framing?.move ? "Move to support a change in picture or emphasis" : "Hold the framing",
+      transition: edl.transitions.find((t) => t.between[1] === s.id)?.type ?? "cut",
+      score: b?.score ?? null,
+      label: media.find((m) => m.clip === s.clip)?.semantic?.find((v) => v.at >= s.in && v.at < s.out)?.label ?? null,
+      sequence: i + 1,
+      status: "editorial inference",
+    };
+  });
+}
+function fromRevision(cut, plan, bindings) {
+  const parsed = PortableCutSchema.parse(cut);
+  verifyPortableSources(parsed, bindings);
+  const fps = parsed.output.rate.numerator / parsed.output.rate.denominator;
+  if (fps !== 30) throw Error("This renderer supports 30 fps timelines.");
+  const byId = new Map(plan.segments.map((s) => [s.id, s]));
+  const segments = parsed.scenes.map((s) => ({
+    ...(byId.get(s.id) ?? { type: "clip", framing: { scale: 1, origin: { x: 0.5, y: 0.5 } } }),
+    id: s.id,
+    clip: s.clip,
+    in: s.inFrame / fps,
+    out: s.outFrame / fps,
+  }));
+  const active = new Set(segments.map((s) => s.id));
+  return {
+    ...plan,
+    segments,
+    transitions: plan.transitions.filter((t) =>
+      segments.some((s, i) => s.id === t.between[0] && segments[i + 1]?.id === t.between[1]),
+    ),
+    overlays: plan.overlays.filter((o) => !o.at.segment || active.has(o.at.segment)),
+    audio: { ...plan.audio, sfx: plan.audio.sfx.filter((f) => active.has(f.at.segment)) },
+  };
+}
+self.onmessage = async ({ data }) => {
   try {
-    progress("Opening the editing engine", 0.04);
-    const core = await loadVideoEngine();
-    // WORKERFS reads File slices on demand instead of copying the full upload into RAM.
-    let mounted = false;
-    if (core.FS.filesystems.WORKERFS) {
-      core.FS.mkdir("source");
-      core.FS.mount(core.FS.filesystems.WORKERFS, { blobs: [{ name: "clip", data: file }] }, "/source");
-      core.FS.symlink("/source/clip", "input");
-      mounted = true;
-    }
-    if (!mounted) {
-      if (file.size > 300 * 1024 * 1024) throw Error("Choose a video under 300 MB for this browser.");
-      core.FS.writeFile("input", new Uint8Array(await file.arrayBuffer()));
-    }
+    const { kind, settings = {}, format, title, supplied, example } = data;
+    const files = data.files ?? [data.file];
+    if (!files.length) throw Error("Choose at least one video.");
+    progress("Opening the editing engine", 0.02);
+    const core = await engine();
     function run(args, tick) {
-      const lines = [];
-      core.setLogger((e) => lines.push(e.message));
+      const log = [];
+      core.setLogger((e) => log.push(e.message));
       core.setProgress((p) => tick?.(p.time / 1e6));
       core.setTimeout(-1);
       core.exec(
@@ -91,87 +210,148 @@ self.onmessage = async ({ data: { kind, file, format, settings, title, supplied,
       if (code)
         throw Error(
           "Video processing failed. " +
-            lines
+            log
               .slice(-6)
               .filter((x) => !x.includes("Aborted"))
               .join(" ")
-              .slice(-530),
+              .slice(-490),
         );
-      return lines.join("\n");
+      return log.join("\n");
     }
-    progress(kind === "learn" ? "Measuring the reference video" : "Finding scene changes and pauses", 0.14);
-    const media = inspect(core, run);
-    if (kind === "learn") {
-      let cueWords = null;
-      const probe = JSON.parse(core.FS.readFile("probe.json", { encoding: "utf8" }));
-      const subs = probe.streams.find(
-        (s) => s.codec_type === "subtitle" && ["mov_text", "subrip", "webvtt", "ass", "ssa"].includes(s.codec_name),
+    const media = [],
+      refs = [],
+      evidences = [],
+      notes = [];
+    let image = null;
+    const useMount = Boolean(core.FS.filesystems.WORKERFS);
+    if (useMount) {
+      core.FS.mkdir("sources");
+      core.FS.mount(
+        core.FS.filesystems.WORKERFS,
+        { blobs: files.map((file, i) => ({ name: "c" + (i + 1), data: file })) },
+        "/sources",
       );
-      if (subs) {
-        try {
-          run(["-i", "input", "-map", "0:" + subs.index, "-f", "srt", "ref.srt"]);
-          const counts = core.FS.readFile("ref.srt", { encoding: "utf8" })
-            .trim()
-            .split(/\r?\n\s*\n/)
-            .map(
-              (s) =>
-                s
-                  .split(/\r?\n/)
-                  .slice(2)
-                  .join(" ")
-                  .replace(/<[^>]*>/g, "")
-                  .trim()
-                  .split(/\s+/)
-                  .filter(Boolean).length,
-            )
-            .filter(Boolean);
-          if (counts.length) cueWords = median(counts);
-        } catch {}
+    }
+    for (const [i, file] of files.entries()) {
+      const clip = "c" + (i + 1),
+        input = useMount ? "/sources/" + clip : "input-" + clip;
+      if (!useMount) {
+        if (file.size > 300 * 1024 * 1024) throw Error("Choose a file under 300 MB for this browser.");
+        core.FS.writeFile(input, new Uint8Array(await file.arrayBuffer()));
       }
-      const result = learn(title, media, cueWords);
-      try {
-        run([
-          "-i",
-          "input",
-          "-frames:v",
-          "1",
-          "-vf",
-          "scale=128:72:force_original_aspect_ratio=increase,crop=128:72",
-          "-q:v",
-          "6",
-          "cover.jpg",
-        ]);
-        result.image = "data:image/jpeg;base64," + btoa(String.fromCharCode(...core.FS.readFile("cover.jpg")));
-      } catch {}
-      self.postMessage({ format: result });
+      const digest = await fingerprint(file);
+      progress(
+        (kind === "learn" ? "Measuring reference" : "Analyzing clip") + " " + (i + 1) + " of " + files.length,
+        0.08 + (0.13 * i) / files.length,
+      );
+      const m = inspect(core, run, input, clip, { keepFrames: kind === "learn", needSamples: kind !== "learn" });
+      m.name = file.name;
+      m.bytes = file.size;
+      m.digest = digest;
+      if (settings.visual) {
+        try {
+          m.semantic = (await getVisualContext(core, run, m)).map((v) => ({ ...v, clip }));
+        } catch {
+          notes.push("Visual scene interpretation was unavailable. Frame and audio measurements were retained.");
+        }
+      }
+      if (kind === "learn") {
+        const item = referenceCard(core, run, m, digest, file.name);
+        refs.push(item.card);
+        evidences.push({
+          id: digest,
+          name: file.name,
+          analysis: m.evidence,
+          frames: m.visual.frames,
+          embeddedSubtitles: item.subtitleCues,
+          semantics: m.semantic ?? [],
+        });
+        if (!image) {
+          run([
+            "-ss",
+            String(Math.min(0.3, m.seconds / 2)),
+            "-i",
+            input,
+            "-frames:v",
+            "1",
+            "-vf",
+            "scale=160:90:force_original_aspect_ratio=increase,crop=160:90",
+            "-q:v",
+            "5",
+            "cover.jpg",
+          ]);
+          image = "data:image/jpeg;base64," + btoa(String.fromCharCode(...core.FS.readFile("cover.jpg")));
+        }
+      } else {
+        let words = [];
+        if (supplied && i === 0) words = importSrt(supplied, m.seconds).words;
+        else if (example && i === 0)
+          words = JSON.parse(new TextDecoder().decode(await asset("sample-transcript.json"))).words;
+        else if (m.audio && (m.evidence.audio?.rmsDbfs ?? -100) > -55) {
+          const key = "whisper-tiny-5332:" + digest;
+          words = await readLocal(key);
+          if (!words) {
+            try {
+              progress("Listening to clip " + (i + 1), 0.24);
+              words = await model("speech", m.raw, [m.raw.buffer]);
+              await saveLocal(key, words);
+            } catch {
+              words = [];
+              notes.push(
+                "Automatic speech recognition was unavailable for " + file.name + ". You can supply timed subtitles.",
+              );
+            }
+          }
+        }
+        m.raw = null;
+        m.words = words
+          .filter((w) => w.start < m.duration && w.end > w.start)
+          .map((w, j) => ({ ...w, id: clip + "-w" + (j + 1), clip, end: Math.min(w.end, m.duration) }));
+        media.push(m);
+      }
+    }
+    if (kind === "learn") {
+      const learned = makeStyle(refs, "ref-" + crypto.randomUUID(), title, image || "./assets/forest.jpg");
+      self.postMessage({ format: learned, evidences, notes });
       return;
     }
-    if (media.duration < 4.99) throw Error("Choose a video at least five seconds long.");
-    let words = [],
-      note = "";
-    if (supplied) words = importSrt(supplied, media.seconds).words;
-    else if (example) words = JSON.parse(new TextDecoder().decode(await getAsset("sample-transcript.json"))).words;
-    else if (media.audio && media.mean > -55 && settings.captions) {
-      progress("Preparing automatic subtitles", 0.24);
-      try {
-        words = await listen(media.raw);
-      } catch {
-        note =
-          "Automatic subtitles were unavailable for this edit. You can attach an SRT subtitle file in Edit settings.";
-      }
+    const facts = Object.fromEntries(
+      ["words", "shots", "sentences", "retakes", "silences", "loudness"].map((k) => [k, []]),
+    );
+    for (const m of media) {
+      const f = analysisFor(m, m.words);
+      for (const k of Object.keys(facts))
+        facts[k].push(
+          ...f[k].map((x) =>
+            x.id && !["words", "shots", "silences"].includes(k) ? { ...x, id: m.clip + "-" + x.id } : x,
+          ),
+        );
     }
-    words = words
-      .filter((w) => w.start < media.duration && w.end > w.start)
-      .map((w) => ({ ...w, end: Math.min(w.end, media.duration) }));
-    if (settings.captions && !note && !words.length)
-      note = media.audio ? "No spoken words were detected." : "The source has no audio track.";
-    const facts = analysisFor(media, words);
     const probe = {
-      clips: [{ id: "c1", normalized: { duration: media.duration, frames: Math.round(media.duration * 30) } }],
+      clips: media.map((m) => ({
+        id: m.clip,
+        normalized: { duration: m.duration, frames: Math.round(m.duration * 30) },
+      })),
     };
-    progress("Choosing the cut", 0.42);
+    const bindings = media.map((m) => ({
+      id: m.clip,
+      name: m.name,
+      bytes: m.bytes,
+      duration: m.duration,
+      hasAudio: m.audio,
+    }));
+    progress("Choosing scenes and building the timeline", 0.39);
     const beats = findBeats(probe, facts, format, settings);
-    const { edl, decisions } = buildEdit(
+    // A confident semantic observation is only a small tie-breaker between technical candidates.
+    for (const b of beats) {
+      if (
+        media
+          .find((m) => m.clip === b.clip)
+          ?.semantic?.some((s) => s.at >= b.start && s.at < b.end && s.label === "a hands-on demonstration")
+      )
+        b.score += 0.35;
+    }
+    const { edl: initial, decisions } = buildEdit(
       title,
       "auto",
       facts,
@@ -180,11 +360,132 @@ self.onmessage = async ({ data: { kind, file, format, settings, title, supplied,
       format,
       settings,
     );
-    const rendered = await render(core, run, edl, facts, media, getAsset, progress);
-    const notes = decisions.map((d) => d.detail);
-    if (note) notes.push(note);
-    if (media.seconds > media.duration) notes.push("The director used the first three minutes of this video.");
-    self.postMessage({ result: { ...rendered, notes, sourceSeconds: media.seconds } }, [rendered.bytes.buffer]);
+    const edl = data.revision ? fromRevision(data.revision, initial, bindings) : initial;
+    // Portable cuts and recording both use half-open source-frame intervals.
+    for(const seg of edl.segments){seg.in=Math.round(seg.in*30)/30;seg.out=Math.round(seg.out*30)/30;}
+    const dimensions = data.revision
+      ? { width: data.revision.output.width, height: data.revision.output.height }
+      : outputSize(settings.ratio, settings.quality);
+    const signature = media.map((m) => m.digest);
+    if (
+      data.revision?.metadata?.sourceDigests &&
+      JSON.stringify(data.revision.metadata.sourceDigests) !== JSON.stringify(signature)
+    )
+      throw Error("These files differ from the timeline’s originals.");
+    const color = {};
+    for (const field of ["luma", "contrast", "saturation"]) {
+      const values = media.map((m) => m.visual.color[field]).filter((v) => v !== null);
+      color[field] = values.length ? median(values) : null;
+    }
+    const grade = matchGrade(format, color),
+      reasons = sceneReasons(edl, beats, media);
+    const phrases = timelinePhrases(edl, facts.sentences);
+    const broll =
+      settings.broll !== false && format.profile?.preferences.broll !== false
+        ? selectBroll(phrases, { engine: "browser" })
+        : null;
+    const iterations = [],
+      limit = Math.max(0, Math.min(2, Number(settings.iterations ?? 1)));
+    let adjustment = { brightness: grade.brightness, gainDb: 0 },
+      rendered = null,
+      previous = null,
+      report = null;
+    for (let i = 0; i <= limit; i++) {
+      rendered = await render(core, run, edl, facts, media, asset, progress, {
+        dimensions,
+        grade: { ...grade, brightness: adjustment.brightness },
+        gainDb: adjustment.gainDb,
+        broll,
+        captionStyle: settings.captionStyle,
+      });
+      progress("Checking the finished picture and sound", 0.95);
+      const measured = inspect(core, run, "reel.mp4", "result", { keepFrames: true, needSamples: true });
+      const pictures = measured.visual.frames.map((f) => f.luma).filter((n) => n !== null);
+      report = assessRender({
+        expected: {
+          ...dimensions,
+          fps: 30,
+          frames: Math.round(rendered.seconds * 30),
+          medianLuma: grade.targetLuma,
+          medianShotSeconds: format.profile?.references.length ? format.shotSeconds : null,
+          captions: rendered.captions.map(({ start, end, text }) => ({ start, end, text })),
+        },
+        actual: {
+          width: measured.meta.video.width,
+          height: measured.meta.video.height,
+          fps: measured.meta.source.fps,
+          duration: measured.duration,
+          frames: measured.visual.frameCount,
+          medianLuma: pictures.length ? median(pictures) / 255 : null,
+          cutTimes: measured.visual.cuts.map((c) => c.at).filter((t) => t > 0 && t < measured.duration),
+          truePeakDbtp: measured.truePeakDbtp,
+          samplePeakDbfs: measured.evidence.audio?.samplePeakDbfs,
+          clipping: fullScaleIntervals(measured.raw),
+        },
+      });
+      iterations.push({ iteration: i, adjustment, report });
+      const repair = suggestRepair(report, {
+        ...adjustment,
+        iteration: i,
+        maxIterations: limit,
+        ...(previous ? { previous } : {}),
+        budget: { spent: 0, next: 0, limit: 0 },
+      });
+      if (!repair) break;
+      previous = report.metrics;
+      adjustment = { brightness: repair.brightness, gainDb: repair.gainDb };
+      progress("Revising picture or sound from the measured result", 0.45);
+    }
+    const metadata = JSON.parse(
+      JSON.stringify({
+        sourceDigests: signature,
+        settings,
+        decisions: reasons,
+        grade: { ...grade, ...adjustment },
+        broll,
+        effects: { segments: edl.segments, transitions: edl.transitions, overlays: edl.overlays, audio: edl.audio },
+        semanticObservations: media.flatMap((m) => m.semantic ?? []),
+        referenceStyle: format.id,
+        referenceRevision: format.profile?.revision,
+        quality: iterations,
+      }),
+    );
+    let cut = buildPortableCut({
+      title,
+      output: dimensions,
+      sources: bindings,
+      segments: edl.segments,
+      captions: rendered.captions.map((c) => ({
+        clip: c.clip,
+        sceneId: c.sceneId,
+        start: c.sourceStart,
+        end: c.sourceEnd,
+        text: c.text,
+      })),
+      metadata,
+    });
+    if (data.revision) cut = { ...cut, revision: data.revision.revision };
+    notes.unshift(...decisions.map((d) => d.detail));
+    for (const issue of report.issues) notes.push(issue.start.toFixed(1)+"–"+issue.end.toFixed(1)+"s · "+issue.basis);
+    if (broll) notes.push("B-roll: " + broll.reason);
+    notes.push(
+      "Checked " +
+        report.checks.filter((c) => c.status === "pass").length +
+        " delivery measurements on the exported MP4.",
+    );
+    self.postMessage(
+      {
+        result: {
+          ...rendered,
+          cut,
+          notes,
+          report,
+          iterations,
+          sourceSeconds: media.reduce((n, m) => n + m.seconds, 0),
+        },
+      },
+      [rendered.bytes.buffer],
+    );
   } catch (error) {
     self.postMessage({ error: error?.message || "This video could not be edited." });
   }

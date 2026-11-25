@@ -1,0 +1,620 @@
+{
+  "OTIO_SCHEMA": "Timeline.1",
+  "name": "Alpine field notes",
+  "global_start_time": {
+    "OTIO_SCHEMA": "RationalTime.1",
+    "value": 0,
+    "rate": 30
+  },
+  "metadata": {
+    "ReelForge": {
+      "version": 1,
+      "revision": 1,
+      "output": {
+        "width": 1080,
+        "height": 1920,
+        "ratio": "9:16",
+        "rate": {
+          "numerator": 30,
+          "denominator": 1
+        }
+      },
+      "caption_representation": "picture clip markers",
+      "application_metadata": "Titles, motion, transitions, grading and the final sound mix use the ReelForge renderer.",
+      "portable_cut_json": "{\"schema\":\"org.reelforge.cut\",\"version\":1,\"revision\":1,\"title\":\"Alpine field notes\",\"output\":{\"width\":1080,\"height\":1920,\"ratio\":\"9:16\",\"rate\":{\"numerator\":30,\"denominator\":1}},\"sources\":[{\"id\":\"c1\",\"name\":\"alpine-field-notes.mp4\",\"bytes\":1094188,\"duration\":12,\"hasAudio\":true}],\"scenes\":[{\"id\":\"s1\",\"clip\":\"c1\",\"inFrame\":0,\"outFrame\":92,\"name\":\"Shot 1\",\"metadata\":{\"framing\":{\"scale\":1,\"origin\":{\"x\":0.5,\"y\":0.5},\"move\":{\"toScale\":1.039,\"ease\":\"easeInOut\"}}}},{\"id\":\"s2\",\"clip\":\"c1\",\"inFrame\":123,\"outFrame\":205,\"name\":\"Shot 2\",\"metadata\":{\"framing\":{\"scale\":1.07,\"origin\":{\"x\":0.5,\"y\":0.5},\"move\":{\"toScale\":1.109,\"ease\":\"easeInOut\"}}}},{\"id\":\"s3\",\"clip\":\"c1\",\"inFrame\":243,\"outFrame\":326,\"name\":\"Shot 3\",\"metadata\":{\"framing\":{\"scale\":1,\"origin\":{\"x\":0.5,\"y\":0.5},\"move\":{\"toScale\":1.039,\"ease\":\"easeInOut\"}}}}],\"captions\":[{\"id\":\"cue-0-0\",\"clip\":\"c1\",\"sceneId\":\"s1\",\"startFrame\":11,\"endFrame\":52,\"text\":\"FOLLOW THE MORNING LIGHT\"},{\"id\":\"cue-1-0\",\"clip\":\"c1\",\"sceneId\":\"s1\",\"startFrame\":52,\"endFrame\":92,\"text\":\"INTO THE MOUNTAINS\"},{\"id\":\"cue-1-1\",\"clip\":\"c1\",\"sceneId\":\"s2\",\"startFrame\":123,\"endFrame\":131,\"text\":\"INTO THE MOUNTAINS\"},{\"id\":\"cue-2-1\",\"clip\":\"c1\",\"sceneId\":\"s2\",\"startFrame\":131,\"endFrame\":176,\"text\":\"THE QUIET FOREST CHANGES\"},{\"id\":\"cue-3-1\",\"clip\":\"c1\",\"sceneId\":\"s2\",\"startFrame\":176,\"endFrame\":205,\"text\":\"THE PACE\"},{\"id\":\"cue-3-2\",\"clip\":\"c1\",\"sceneId\":\"s3\",\"startFrame\":243,\"endFrame\":251,\"text\":\"THE PACE\"},{\"id\":\"cue-4-2\",\"clip\":\"c1\",\"sceneId\":\"s3\",\"startFrame\":251,\"endFrame\":287,\"text\":\"STAY UNTIL THE LAKE\"},{\"id\":\"cue-5-2\",\"clip\":\"c1\",\"sceneId\":\"s3\",\"startFrame\":287,\"endFrame\":326,\"text\":\"COMES INTO VIEW\"}],\"metadata\":{\"decisions\":[{\"title\":\"Picture edit\",\"detail\":\"3 shots across 8.6 seconds. Cuts follow available shot changes and speech boundaries.\"},{\"title\":\"Motion\",\"detail\":\"Opened with “Alpine field notes”. Applied 7% alternating punch-ins and 2 visible transitions.\"},{\"title\":\"Subtitles\",\"detail\":\"20 timed words in groups of up to 4.\"},{\"title\":\"Sound\",\"detail\":\"2 timed sound accents. The music ducks under the original audio.\"}],\"settings\":{\"format\":\"cinematic\",\"target\":30,\"cuts\":true,\"motion\":true,\"captions\":true,\"sound\":true,\"director\":\"local\",\"brief\":\"\"},\"effects\":{\"transitions\":[{\"between\":[\"s1\",\"s2\"],\"type\":\"fade\",\"duration\":0.36},{\"between\":[\"s2\",\"s3\"],\"type\":\"fade\",\"duration\":0.36}],\"overlays\":[{\"id\":\"opening-title\",\"component\":\"HookTitle\",\"props\":{\"text\":\"Alpine field notes\"},\"at\":{\"segment\":\"s1\"},\"duration\":2.2,\"layer\":\"front\",\"zone\":\"top\"}],\"audio\":{\"voice\":{\"targetLufs\":-14,\"denoise\":false},\"music\":{\"file\":\"music/drift.m4a\",\"gainDb\":-17,\"duck\":true,\"fadeOut\":0.8},\"sfx\":[{\"file\":\"sfx/sweep.wav\",\"at\":{\"segment\":\"s2\"},\"gainDb\":-15},{\"file\":\"sfx/sweep.wav\",\"at\":{\"segment\":\"s3\"},\"gainDb\":-15}]},\"captionDesign\":{\"enabled\":true,\"style\":\"bold\",\"maxWordsPerPage\":4,\"position\":\"auto\",\"emphasis\":[],\"overrides\":[],\"hide\":[]}}}}"
+    }
+  },
+  "tracks": {
+    "OTIO_SCHEMA": "Stack.1",
+    "name": "tracks",
+    "metadata": {},
+    "source_range": null,
+    "effects": [],
+    "markers": [],
+    "enabled": true,
+    "color": null,
+    "children": [
+      {
+        "OTIO_SCHEMA": "Track.1",
+        "name": "Picture",
+        "metadata": {},
+        "source_range": null,
+        "effects": [],
+        "markers": [],
+        "enabled": true,
+        "color": null,
+        "kind": "Video",
+        "children": [
+          {
+            "OTIO_SCHEMA": "Clip.2",
+            "name": "Shot 1",
+            "metadata": {
+              "ReelForge": {
+                "scene_id": "s1",
+                "source_id": "c1"
+              }
+            },
+            "source_range": {
+              "OTIO_SCHEMA": "TimeRange.1",
+              "start_time": {
+                "OTIO_SCHEMA": "RationalTime.1",
+                "value": 0,
+                "rate": 30
+              },
+              "duration": {
+                "OTIO_SCHEMA": "RationalTime.1",
+                "value": 92,
+                "rate": 30
+              }
+            },
+            "effects": [],
+            "markers": [
+              {
+                "OTIO_SCHEMA": "Marker.2",
+                "name": "FOLLOW THE MORNING LIGHT",
+                "comment": "FOLLOW THE MORNING LIGHT",
+                "color": "YELLOW",
+                "marked_range": {
+                  "OTIO_SCHEMA": "TimeRange.1",
+                  "start_time": {
+                    "OTIO_SCHEMA": "RationalTime.1",
+                    "value": 11,
+                    "rate": 30
+                  },
+                  "duration": {
+                    "OTIO_SCHEMA": "RationalTime.1",
+                    "value": 41,
+                    "rate": 30
+                  }
+                },
+                "metadata": {
+                  "ReelForge": {
+                    "kind": "caption",
+                    "cue_id": "cue-0-0",
+                    "scene_id": "s1",
+                    "source_id": "c1"
+                  }
+                }
+              },
+              {
+                "OTIO_SCHEMA": "Marker.2",
+                "name": "INTO THE MOUNTAINS",
+                "comment": "INTO THE MOUNTAINS",
+                "color": "YELLOW",
+                "marked_range": {
+                  "OTIO_SCHEMA": "TimeRange.1",
+                  "start_time": {
+                    "OTIO_SCHEMA": "RationalTime.1",
+                    "value": 52,
+                    "rate": 30
+                  },
+                  "duration": {
+                    "OTIO_SCHEMA": "RationalTime.1",
+                    "value": 40,
+                    "rate": 30
+                  }
+                },
+                "metadata": {
+                  "ReelForge": {
+                    "kind": "caption",
+                    "cue_id": "cue-1-0",
+                    "scene_id": "s1",
+                    "source_id": "c1"
+                  }
+                }
+              }
+            ],
+            "enabled": true,
+            "color": null,
+            "media_references": {
+              "DEFAULT_MEDIA": {
+                "OTIO_SCHEMA": "ExternalReference.1",
+                "name": "alpine-field-notes.mp4",
+                "target_url": "../../assets/studio/alpine-field-notes.mp4",
+                "available_image_bounds": null,
+                "available_range": {
+                  "OTIO_SCHEMA": "TimeRange.1",
+                  "start_time": {
+                    "OTIO_SCHEMA": "RationalTime.1",
+                    "value": 0,
+                    "rate": 30
+                  },
+                  "duration": {
+                    "OTIO_SCHEMA": "RationalTime.1",
+                    "value": 360,
+                    "rate": 30
+                  }
+                },
+                "metadata": {
+                  "ReelForge": {
+                    "source_id": "c1",
+                    "bytes": 1094188,
+                    "duration_seconds": 12
+                  }
+                }
+              }
+            },
+            "active_media_reference_key": "DEFAULT_MEDIA"
+          },
+          {
+            "OTIO_SCHEMA": "Clip.2",
+            "name": "Shot 2",
+            "metadata": {
+              "ReelForge": {
+                "scene_id": "s2",
+                "source_id": "c1"
+              }
+            },
+            "source_range": {
+              "OTIO_SCHEMA": "TimeRange.1",
+              "start_time": {
+                "OTIO_SCHEMA": "RationalTime.1",
+                "value": 123,
+                "rate": 30
+              },
+              "duration": {
+                "OTIO_SCHEMA": "RationalTime.1",
+                "value": 82,
+                "rate": 30
+              }
+            },
+            "effects": [],
+            "markers": [
+              {
+                "OTIO_SCHEMA": "Marker.2",
+                "name": "INTO THE MOUNTAINS",
+                "comment": "INTO THE MOUNTAINS",
+                "color": "YELLOW",
+                "marked_range": {
+                  "OTIO_SCHEMA": "TimeRange.1",
+                  "start_time": {
+                    "OTIO_SCHEMA": "RationalTime.1",
+                    "value": 123,
+                    "rate": 30
+                  },
+                  "duration": {
+                    "OTIO_SCHEMA": "RationalTime.1",
+                    "value": 8,
+                    "rate": 30
+                  }
+                },
+                "metadata": {
+                  "ReelForge": {
+                    "kind": "caption",
+                    "cue_id": "cue-1-1",
+                    "scene_id": "s2",
+                    "source_id": "c1"
+                  }
+                }
+              },
+              {
+                "OTIO_SCHEMA": "Marker.2",
+                "name": "THE QUIET FOREST CHANGES",
+                "comment": "THE QUIET FOREST CHANGES",
+                "color": "YELLOW",
+                "marked_range": {
+                  "OTIO_SCHEMA": "TimeRange.1",
+                  "start_time": {
+                    "OTIO_SCHEMA": "RationalTime.1",
+                    "value": 131,
+                    "rate": 30
+                  },
+                  "duration": {
+                    "OTIO_SCHEMA": "RationalTime.1",
+                    "value": 45,
+                    "rate": 30
+                  }
+                },
+                "metadata": {
+                  "ReelForge": {
+                    "kind": "caption",
+                    "cue_id": "cue-2-1",
+                    "scene_id": "s2",
+                    "source_id": "c1"
+                  }
+                }
+              },
+              {
+                "OTIO_SCHEMA": "Marker.2",
+                "name": "THE PACE",
+                "comment": "THE PACE",
+                "color": "YELLOW",
+                "marked_range": {
+                  "OTIO_SCHEMA": "TimeRange.1",
+                  "start_time": {
+                    "OTIO_SCHEMA": "RationalTime.1",
+                    "value": 176,
+                    "rate": 30
+                  },
+                  "duration": {
+                    "OTIO_SCHEMA": "RationalTime.1",
+                    "value": 29,
+                    "rate": 30
+                  }
+                },
+                "metadata": {
+                  "ReelForge": {
+                    "kind": "caption",
+                    "cue_id": "cue-3-1",
+                    "scene_id": "s2",
+                    "source_id": "c1"
+                  }
+                }
+              }
+            ],
+            "enabled": true,
+            "color": null,
+            "media_references": {
+              "DEFAULT_MEDIA": {
+                "OTIO_SCHEMA": "ExternalReference.1",
+                "name": "alpine-field-notes.mp4",
+                "target_url": "../../assets/studio/alpine-field-notes.mp4",
+                "available_image_bounds": null,
+                "available_range": {
+                  "OTIO_SCHEMA": "TimeRange.1",
+                  "start_time": {
+                    "OTIO_SCHEMA": "RationalTime.1",
+                    "value": 0,
+                    "rate": 30
+                  },
+                  "duration": {
+                    "OTIO_SCHEMA": "RationalTime.1",
+                    "value": 360,
+                    "rate": 30
+                  }
+                },
+                "metadata": {
+                  "ReelForge": {
+                    "source_id": "c1",
+                    "bytes": 1094188,
+                    "duration_seconds": 12
+                  }
+                }
+              }
+            },
+            "active_media_reference_key": "DEFAULT_MEDIA"
+          },
+          {
+            "OTIO_SCHEMA": "Clip.2",
+            "name": "Shot 3",
+            "metadata": {
+              "ReelForge": {
+                "scene_id": "s3",
+                "source_id": "c1"
+              }
+            },
+            "source_range": {
+              "OTIO_SCHEMA": "TimeRange.1",
+              "start_time": {
+                "OTIO_SCHEMA": "RationalTime.1",
+                "value": 243,
+                "rate": 30
+              },
+              "duration": {
+                "OTIO_SCHEMA": "RationalTime.1",
+                "value": 83,
+                "rate": 30
+              }
+            },
+            "effects": [],
+            "markers": [
+              {
+                "OTIO_SCHEMA": "Marker.2",
+                "name": "THE PACE",
+                "comment": "THE PACE",
+                "color": "YELLOW",
+                "marked_range": {
+                  "OTIO_SCHEMA": "TimeRange.1",
+                  "start_time": {
+                    "OTIO_SCHEMA": "RationalTime.1",
+                    "value": 243,
+                    "rate": 30
+                  },
+                  "duration": {
+                    "OTIO_SCHEMA": "RationalTime.1",
+                    "value": 8,
+                    "rate": 30
+                  }
+                },
+                "metadata": {
+                  "ReelForge": {
+                    "kind": "caption",
+                    "cue_id": "cue-3-2",
+                    "scene_id": "s3",
+                    "source_id": "c1"
+                  }
+                }
+              },
+              {
+                "OTIO_SCHEMA": "Marker.2",
+                "name": "STAY UNTIL THE LAKE",
+                "comment": "STAY UNTIL THE LAKE",
+                "color": "YELLOW",
+                "marked_range": {
+                  "OTIO_SCHEMA": "TimeRange.1",
+                  "start_time": {
+                    "OTIO_SCHEMA": "RationalTime.1",
+                    "value": 251,
+                    "rate": 30
+                  },
+                  "duration": {
+                    "OTIO_SCHEMA": "RationalTime.1",
+                    "value": 36,
+                    "rate": 30
+                  }
+                },
+                "metadata": {
+                  "ReelForge": {
+                    "kind": "caption",
+                    "cue_id": "cue-4-2",
+                    "scene_id": "s3",
+                    "source_id": "c1"
+                  }
+                }
+              },
+              {
+                "OTIO_SCHEMA": "Marker.2",
+                "name": "COMES INTO VIEW",
+                "comment": "COMES INTO VIEW",
+                "color": "YELLOW",
+                "marked_range": {
+                  "OTIO_SCHEMA": "TimeRange.1",
+                  "start_time": {
+                    "OTIO_SCHEMA": "RationalTime.1",
+                    "value": 287,
+                    "rate": 30
+                  },
+                  "duration": {
+                    "OTIO_SCHEMA": "RationalTime.1",
+                    "value": 39,
+                    "rate": 30
+                  }
+                },
+                "metadata": {
+                  "ReelForge": {
+                    "kind": "caption",
+                    "cue_id": "cue-5-2",
+                    "scene_id": "s3",
+                    "source_id": "c1"
+                  }
+                }
+              }
+            ],
+            "enabled": true,
+            "color": null,
+            "media_references": {
+              "DEFAULT_MEDIA": {
+                "OTIO_SCHEMA": "ExternalReference.1",
+                "name": "alpine-field-notes.mp4",
+                "target_url": "../../assets/studio/alpine-field-notes.mp4",
+                "available_image_bounds": null,
+                "available_range": {
+                  "OTIO_SCHEMA": "TimeRange.1",
+                  "start_time": {
+                    "OTIO_SCHEMA": "RationalTime.1",
+                    "value": 0,
+                    "rate": 30
+                  },
+                  "duration": {
+                    "OTIO_SCHEMA": "RationalTime.1",
+                    "value": 360,
+                    "rate": 30
+                  }
+                },
+                "metadata": {
+                  "ReelForge": {
+                    "source_id": "c1",
+                    "bytes": 1094188,
+                    "duration_seconds": 12
+                  }
+                }
+              }
+            },
+            "active_media_reference_key": "DEFAULT_MEDIA"
+          }
+        ]
+      },
+      {
+        "OTIO_SCHEMA": "Track.1",
+        "name": "Original audio",
+        "metadata": {},
+        "source_range": null,
+        "effects": [],
+        "markers": [],
+        "enabled": true,
+        "color": null,
+        "kind": "Audio",
+        "children": [
+          {
+            "OTIO_SCHEMA": "Clip.2",
+            "name": "Shot 1",
+            "metadata": {
+              "ReelForge": {
+                "scene_id": "s1",
+                "source_id": "c1"
+              }
+            },
+            "source_range": {
+              "OTIO_SCHEMA": "TimeRange.1",
+              "start_time": {
+                "OTIO_SCHEMA": "RationalTime.1",
+                "value": 0,
+                "rate": 30
+              },
+              "duration": {
+                "OTIO_SCHEMA": "RationalTime.1",
+                "value": 92,
+                "rate": 30
+              }
+            },
+            "effects": [],
+            "markers": [],
+            "enabled": true,
+            "color": null,
+            "media_references": {
+              "DEFAULT_MEDIA": {
+                "OTIO_SCHEMA": "ExternalReference.1",
+                "name": "alpine-field-notes.mp4",
+                "target_url": "../../assets/studio/alpine-field-notes.mp4",
+                "available_image_bounds": null,
+                "available_range": {
+                  "OTIO_SCHEMA": "TimeRange.1",
+                  "start_time": {
+                    "OTIO_SCHEMA": "RationalTime.1",
+                    "value": 0,
+                    "rate": 30
+                  },
+                  "duration": {
+                    "OTIO_SCHEMA": "RationalTime.1",
+                    "value": 360,
+                    "rate": 30
+                  }
+                },
+                "metadata": {
+                  "ReelForge": {
+                    "source_id": "c1",
+                    "bytes": 1094188,
+                    "duration_seconds": 12
+                  }
+                }
+              }
+            },
+            "active_media_reference_key": "DEFAULT_MEDIA"
+          },
+          {
+            "OTIO_SCHEMA": "Clip.2",
+            "name": "Shot 2",
+            "metadata": {
+              "ReelForge": {
+                "scene_id": "s2",
+                "source_id": "c1"
+              }
+            },
+            "source_range": {
+              "OTIO_SCHEMA": "TimeRange.1",
+              "start_time": {
+                "OTIO_SCHEMA": "RationalTime.1",
+                "value": 123,
+                "rate": 30
+              },
+              "duration": {
+                "OTIO_SCHEMA": "RationalTime.1",
+                "value": 82,
+                "rate": 30
+              }
+            },
+            "effects": [],
+            "markers": [],
+            "enabled": true,
+            "color": null,
+            "media_references": {
+              "DEFAULT_MEDIA": {
+                "OTIO_SCHEMA": "ExternalReference.1",
+                "name": "alpine-field-notes.mp4",
+                "target_url": "../../assets/studio/alpine-field-notes.mp4",
+                "available_image_bounds": null,
+                "available_range": {
+                  "OTIO_SCHEMA": "TimeRange.1",
+                  "start_time": {
+                    "OTIO_SCHEMA": "RationalTime.1",
+                    "value": 0,
+                    "rate": 30
+                  },
+                  "duration": {
+                    "OTIO_SCHEMA": "RationalTime.1",
+                    "value": 360,
+                    "rate": 30
+                  }
+                },
+                "metadata": {
+                  "ReelForge": {
+                    "source_id": "c1",
+                    "bytes": 1094188,
+                    "duration_seconds": 12
+                  }
+                }
+              }
+            },
+            "active_media_reference_key": "DEFAULT_MEDIA"
+          },
+          {
+            "OTIO_SCHEMA": "Clip.2",
+            "name": "Shot 3",
+            "metadata": {
+              "ReelForge": {
+                "scene_id": "s3",
+                "source_id": "c1"
+              }
+            },
+            "source_range": {
+              "OTIO_SCHEMA": "TimeRange.1",
+              "start_time": {
+                "OTIO_SCHEMA": "RationalTime.1",
+                "value": 243,
+                "rate": 30
+              },
+              "duration": {
+                "OTIO_SCHEMA": "RationalTime.1",
+                "value": 83,
+                "rate": 30
+              }
+            },
+            "effects": [],
+            "markers": [],
+            "enabled": true,
+            "color": null,
+            "media_references": {
+              "DEFAULT_MEDIA": {
+                "OTIO_SCHEMA": "ExternalReference.1",
+                "name": "alpine-field-notes.mp4",
+                "target_url": "../../assets/studio/alpine-field-notes.mp4",
+                "available_image_bounds": null,
+                "available_range": {
+                  "OTIO_SCHEMA": "TimeRange.1",
+                  "start_time": {
+                    "OTIO_SCHEMA": "RationalTime.1",
+                    "value": 0,
+                    "rate": 30
+                  },
+                  "duration": {
+                    "OTIO_SCHEMA": "RationalTime.1",
+                    "value": 360,
+                    "rate": 30
+                  }
+                },
+                "metadata": {
+                  "ReelForge": {
+                    "source_id": "c1",
+                    "bytes": 1094188,
+                    "duration_seconds": 12
+                  }
+                }
+              }
+            },
+            "active_media_reference_key": "DEFAULT_MEDIA"
+          }
+        ]
+      }
+    ]
+  }
+}

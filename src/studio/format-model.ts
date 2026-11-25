@@ -1,7 +1,9 @@
 import { z } from "zod";
 import { ms } from "../edl/time";
+import { StyleProfileSchema } from "../intelligence/style-model";
 
 export const FormatSchema = z.object({
+  profile: StyleProfileSchema.optional(),
   id: z.string(),
   name: z.string(),
   description: z.string(),

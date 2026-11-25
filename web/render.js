@@ -1,11 +1,10 @@
 import { defaultBrand } from "../src/brand";
 
-const width = 720,
-  height = 1280,
-  fps = 30;
+import { cachedScene, checkpointScene, hashBytes } from "./storage";
+const fps = 30;
 const time = (n) => String(Math.round(n * 1000) / 1000);
 // Text lives in separate files so punctuation is never interpreted as FFmpeg syntax.
-function drawText(core, id, event, kind) {
+function drawText(core, id, event, kind, width, height, captionStyle) {
   const lines = [""];
   const title = kind !== "caption";
   for (const word of String(event.text).trim().split(/\s+/)) {
@@ -14,7 +13,8 @@ function drawText(core, id, event, kind) {
     else lines[last] += (lines[last] ? " " : "") + word;
   }
   const longest = Math.max(1, ...lines.map((l) => [...l].length));
-  const size = Math.max(16, Math.min(title ? 55 : 46, Math.floor((width - 112) / (longest * 0.72))));
+  const unit = Math.min(width, height) / 720;
+  const size = Math.max(12, Math.round(Math.min((title ? 55 : 46) * unit, (width - 0.15 * width) / (longest * 0.72))));
   const file = "text-" + id + ".txt";
   core.FS.writeFile(file, lines.join("\n"));
   const start = time(event.start),
@@ -32,7 +32,9 @@ function drawText(core, id, event, kind) {
     shadow +
     "@0.8:shadowx=0:shadowy=2:line_spacing=6:x=(w-text_w)/2" +
     ":y='" +
-    (title ? "h*0.155+12*exp(-13*(t-" + start + "))" : "h*0.710-text_h/2") +
+    (title
+      ? "h*0.155+12*exp(-13*(t-" + start + "))"
+      : "h*" + (captionStyle?.position === "center" ? 0.52 : 0.71) + "-text_h/2") +
     "'" +
     ":enable='between(t," +
     start +
@@ -47,7 +49,9 @@ function drawText(core, id, event, kind) {
 }
 
 function captionEvents(words, segment, size) {
-  const relevant = words.filter((w) => (w.start + w.end) / 2 >= segment.in && (w.start + w.end) / 2 < segment.out);
+  const relevant = words.filter(
+    (w) => w.clip === segment.clip && (w.start + w.end) / 2 >= segment.in && (w.start + w.end) / 2 < segment.out,
+  );
   const groups = [];
   for (const word of relevant) {
     const previous = groups.at(-1);
@@ -72,17 +76,24 @@ function captionEvents(words, segment, size) {
     .filter((g) => g.end > g.start);
 }
 
-export async function render(core, run, edl, facts, media, getAsset, progress) {
+export async function render(core, run, edl, facts, sources, getAsset, progress, options) {
+  const { width, height } = options.dimensions;
+  const byClip = new Map(sources.map((s) => [s.clip, s]));
+  const style = options.captionStyle;
+  const shotGrade = options.grade;
+  const keyBytes = new TextEncoder();
   const list = edl.segments;
   const captions = [],
     scenes = [],
     parts = [];
-  core.FS.mkdir("fonts");
+  if (!core.FS.analyzePath("fonts").exists) core.FS.mkdir("fonts");
   core.FS.writeFile("fonts/caption.ttf", await getAsset(defaultBrand.fonts.caption.file));
   let cursor = 0;
   for (let i = 0; i < list.length; i++) {
     const s = list[i],
       seconds = s.out - s.in;
+    const source = byClip.get(s.clip);
+    if (!source) throw Error("A scene refers to missing footage.");
     const frameCount = Math.max(1, Math.round((cursor + seconds) * fps) - Math.round(cursor * fps));
     const transition = edl.transitions.find((t) => t.between[1] === s.id);
     const nextTransition = edl.transitions.find((t) => t.between[0] === s.id);
@@ -92,7 +103,9 @@ export async function render(core, run, edl, facts, media, getAsset, progress) {
     if (transition?.type === "zoom")
       z += "+0.12*max(0,1-on/" + Math.max(1, Math.round(transition.duration * fps)) + ")";
     const filters = [
-      "fps=" + fps,
+      "setpts=PTS-STARTPTS",
+      "fps=" + fps + ":start_time=0",
+      "tpad=stop_mode=clone:stop_duration=0.2",
       "scale=" + width + ":" + height + ":force_original_aspect_ratio=increase:force_divisible_by=2",
       "crop=" + width + ":" + height,
       "setsar=1",
@@ -117,6 +130,17 @@ export async function render(core, run, edl, facts, media, getAsset, progress) {
           ":color=" +
           (nextTransition.type === "flash" ? "white" : "black"),
       );
+    if (shotGrade.brightness || shotGrade.contrast !== 1 || shotGrade.saturation !== 1)
+      filters.push(
+        "eq=brightness=" +
+          shotGrade.brightness +
+          ":contrast=" +
+          shotGrade.contrast +
+          ":saturation=" +
+          shotGrade.saturation,
+      );
+    const panel = options.broll;
+    const showInsert = panel && panel.end > cursor && panel.start < cursor + seconds;
     const page = edl.captions.enabled ? captionEvents(facts.words, s, edl.captions.maxWordsPerPage) : [];
     const opening = edl.overlays.find((o) => o.component === "HookTitle" && o.at.segment === s.id);
     if (opening)
@@ -126,13 +150,17 @@ export async function render(core, run, edl, facts, media, getAsset, progress) {
           "title",
           { start: 0, end: Math.min(seconds, opening.duration), text: opening.props.text },
           "title",
+          width,
+          height,
+          style,
         ),
       );
-    for (const [j, cue] of page.entries()) filters.push(drawText(core, "caption-" + j, cue, "caption"));
+    for (const [j, cue] of page.entries())
+      filters.push(drawText(core, "caption-" + j, cue, "caption", width, height, style));
     for (const [j, overlay] of edl.overlays.entries()) {
       if (overlay.component !== "BigNumber") continue;
       const word = facts.words.find((w) => w.id === overlay.at.word);
-      if (!word || word.start < s.in || word.start >= s.out) continue;
+      if (!word || word.clip !== s.clip || word.start < s.in || word.start >= s.out) continue;
       const start = word.start - s.in;
       const { value, decimals, prefix, suffix } = overlay.props;
       filters.push(
@@ -141,77 +169,138 @@ export async function render(core, run, edl, facts, media, getAsset, progress) {
           "number-" + j,
           { start, end: Math.min(seconds, start + overlay.duration), text: prefix + value.toFixed(decimals) + suffix },
           "number",
+          width,
+          height,
+          style,
         ),
       );
     }
     const filename = "scene" + i + ".mp4";
-    run(
-      [
-        "-ss",
-        time(s.in),
-        "-threads",
-        "1",
-        "-i",
-        "input",
-        "-t",
-        time(seconds),
-        "-map",
-        "0:v:0",
-        "-an",
-        "-vf",
-        filters.join(","),
-        "-threads",
-        "1",
-        "-c:v",
-        "libx264",
-        "-preset",
-        "ultrafast",
-        "-crf",
-        "23",
-        "-pix_fmt",
-        "yuv420p",
-        "-frames:v",
-        String(frameCount),
-        filename,
-      ],
-      (t) =>
+    const firstDraw = filters.findIndex((f) => f.startsWith("drawtext="));
+    const pictureFilters = firstDraw < 0 ? filters : filters.slice(0, firstDraw);
+    const titles = firstDraw < 0 ? [] : filters.slice(firstDraw);
+    const command = ["-ss", time(s.in), "-threads", "1", "-i", source.input];
+    if (showInsert) {
+      if (!core.FS.analyzePath(panel.file).exists) core.FS.writeFile(panel.file, await getAsset(panel.file));
+      command.push("-loop", "1", "-framerate", "30", "-i", panel.file);
+      const start = time(Math.max(0, panel.start - cursor)),
+        end = time(Math.min(seconds, panel.end - cursor));
+      const graph =
+        "[0:v]" +
+        pictureFilters.join(",") +
+        "[base];[1:v]scale=" +
+        width +
+        ":" +
+        height +
+        ":force_original_aspect_ratio=increase,crop=" +
+        width +
+        ":" +
+        height +
+        ",setsar=1[photo];[base][photo]overlay=enable='between(t," +
+        start +
+        "," +
+        end +
+        ")'" +
+        (titles.length ? "," + titles.join(",") : "") +
+        "[out]";
+      command.push("-filter_complex", graph, "-map", "[out]");
+    } else command.push("-map", "0:v:0", "-vf", filters.join(","));
+    command.push(
+      "-an",
+      "-threads",
+      "1",
+      "-c:v",
+      "libx264",
+      "-preset",
+      "ultrafast",
+      "-crf",
+      "23",
+      "-pix_fmt",
+      "yuv420p",
+      "-frames:v",
+      String(frameCount),
+      filename,
+    );
+    const sceneKey = await hashBytes(
+      keyBytes.encode(
+        JSON.stringify([
+          "video-v3",
+          source.digest,
+          s.in,
+          s.out,
+          command,
+          page,
+          edl.overlays,
+          options.captionStyle,
+          showInsert ? panel : null,
+        ]),
+      ),
+    );
+    const stored = await cachedScene(sceneKey);
+    if (stored) core.FS.writeFile(filename, stored);
+    else {
+      progress("Rendering scene " + (i + 1) + " of " + list.length, 0.46 + (0.4 * i) / list.length);
+      run(command, (t) =>
         progress(
           "Rendering scene " + (i + 1) + " of " + list.length,
-          0.46 + (0.46 * (i + Math.min(1, t / seconds))) / list.length,
+          0.46 + (0.4 * (i + Math.min(1, t / seconds))) / list.length,
         ),
-    );
+      );
+      await checkpointScene(sceneKey, core.FS.readFile(filename));
+    }
     parts.push("file '" + filename + "'");
-    for (const g of page) captions.push({ ...g, start: g.start + cursor, end: g.end + cursor });
-    scenes.push({ start: cursor, end: cursor + seconds, source: s.in, name: "Scene " + (i + 1) });
+    for (const g of page)
+      captions.push({
+        ...g,
+        clip: s.clip,
+        sceneId: s.id,
+        sourceStart: g.start + s.in,
+        sourceEnd: g.end + s.in,
+        start: g.start + cursor,
+        end: g.end + cursor,
+      });
+    scenes.push({
+      id: s.id,
+      clip: s.clip,
+      start: cursor,
+      end: cursor + seconds,
+      source: s.in,
+      name: "Scene " + (i + 1),
+    });
     cursor += seconds;
   }
   progress("Mixing the sound and finishing your MP4", 0.93);
   core.FS.writeFile("scenes.txt", parts.join("\n") + "\n");
-  const inputs = ["-f", "concat", "-safe", "0", "-i", "scenes.txt"];
+  // Rebuild packet timestamps from the continuous frame count. MP4 concat offsets are rounded to milliseconds.
+  run(["-f","concat","-safe","0","-i","scenes.txt","-map","0:v:0","-c:v","copy","-bsf:v","h264_mp4toannexb","-f","h264","joined.h264"]);
+  const inputs=["-framerate",String(fps),"-f","h264","-i","joined.h264"];
   const filters = [];
-  if (media.audio) {
-    inputs.push("-i", "input");
-    list.forEach((s, i) =>
-      filters.push(
-        "[1:a:0]atrim=start=" +
-          time(s.in) +
-          ":end=" +
-          time(s.out) +
-          ",asetpts=PTS-STARTPTS,aresample=44100,aformat=sample_fmts=fltp:channel_layouts=stereo,apad=whole_dur=" +
-          time(s.out - s.in) +
-          ",atrim=duration=" +
-          time(s.out - s.in) +
-          "[a" +
-          i +
-          "]",
-      ),
-    );
-    filters.push(list.map((_, i) => "[a" + i + "]").join("") + "concat=n=" + list.length + ":v=0:a=1[voice]");
-  } else {
-    inputs.push("-f", "lavfi", "-t", time(cursor), "-i", "anullsrc=r=44100:cl=stereo");
-    filters.push("[1:a]anull[voice]");
+  let next = 1;
+  const audioInputs = new Map();
+  for (const source of sources) {
+    if (!source.audio || !list.some((s) => s.clip === source.clip)) continue;
+    inputs.push("-i", source.input);
+    audioInputs.set(source.clip, next++);
   }
-  let next = 2;
+  list.forEach((s, i) => {
+    const id = audioInputs.get(s.clip),
+      len = time(s.out - s.in);
+    const src =
+      id === undefined
+        ? "anullsrc=r=44100:cl=stereo,atrim=duration=" + len
+        : "[" + id + ":a:0]atrim=start=" + time(s.in) + ":end=" + time(s.out);
+    filters.push(
+      src +
+        ",asetpts=PTS-STARTPTS,aresample=44100,aformat=sample_fmts=fltp:channel_layouts=stereo,apad=whole_dur=" +
+        len +
+        ",atrim=duration=" +
+        len +
+        "[a" +
+        i +
+        "]",
+    );
+  });
+  filters.push(list.map((_, i) => "[a" + i + "]").join("") + "concat=n=" + list.length + ":v=0:a=1[voice]");
   const mix = [];
   const tracks = new Map();
   const addInput = async (file, loop = false) => {
@@ -248,7 +337,14 @@ export async function render(core, run, edl, facts, media, getAsset, progress) {
     filters.push("[" + id + ":a]volume=" + sound.gainDb + "dB,adelay=" + delay + ":all=1[fx" + i + "]");
     mix.push("[fx" + i + "]");
   }
-  filters.push(mix.join("") + "amix=inputs=" + mix.length + ":duration=first:normalize=0,alimiter=limit=0.97[mix]");
+  filters.push(
+    mix.join("") +
+      "amix=inputs=" +
+      mix.length +
+      ":duration=first:normalize=0,volume=" +
+      options.gainDb +
+      "dB,alimiter=limit=0.97[mix]",
+  );
   run([
     ...inputs,
     "-filter_complex",

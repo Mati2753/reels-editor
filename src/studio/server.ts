@@ -1,3 +1,6 @@
+import { AssetSearchSchema, searchAssets } from "../intelligence/assets";
+import { RenderQualityInputSchema, assessRender } from "../intelligence/quality";
+import { PortableCutSchema, exportOpenTimelineIO } from "../intelligence/timeline";
 import { createServer } from "node:http";
 import { copyFile, mkdir, mkdtemp, readdir, readFile, rename, rm } from "node:fs/promises";
 import path from "node:path";
@@ -135,6 +138,11 @@ const server = createServer(async (req, res) => {
         throw new HttpError(403, "Open the editor to change this workspace.");
       if (req.headers["x-cutroom"] !== "studio") throw new HttpError(403, "This request must come from the editor.");
     }
+    if (reading && route==="/api/tools/assets") return json(res,searchAssets(AssetSearchSchema.parse({query:url.searchParams.get("q")??""})));
+    if (method==="POST" && route==="/api/tools/check-render") return json(res,assessRender(RenderQualityInputSchema.parse(JSON.parse(await body(req,2_000_000)))));
+    if (method==="POST" && route==="/api/tools/export-otio") return json(res,exportOpenTimelineIO(PortableCutSchema.parse(JSON.parse(await body(req,4_000_000)))));
+    const evidenceRoute=/^\/formats\/(ref-[a-f0-9-]+)\/evidence\.json$/.exec(route);
+    if(reading && evidenceRoute)return await serveFile(req,res,path.join(library,evidenceRoute[1]!,"evidence.json"),"reference-evidence.json");
     if (reading && route === "/api/projects/sample/edl")
       return await serveFile(req, res, path.join(assets, "sample.edl.json"), "alpine-field-notes.edl.json");
     if (reading && route === "/") return await serveFile(req, res, path.join(ui, "index.html"));
@@ -184,7 +192,7 @@ const server = createServer(async (req, res) => {
         const video = path.join(temp, "reference" + path.extname(name));
         await acceptUpload(req, video);
         const id = `ref-${randomUUID()}`;
-        const format = await learnFormat(video, id, label);
+        const format = await learnFormat(video, id, label, temp);
         await ffmpeg([
           "-ss",
           String(Math.min(0.4, format.reference!.duration / 2)),

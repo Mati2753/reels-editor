@@ -16,9 +16,11 @@
     "typecheck": "tsc --noEmit",
     "gallery": "tsx scripts/gallery.ts",
     "editor": "tsx src/studio/server.ts",
-    "build:browser": "node scripts/build-web.mjs"
+    "build:browser": "node scripts/build-web.mjs",
+    "mcp": "tsx src/intelligence/mcp.ts"
   },
   "dependencies": {
+    "@modelcontextprotocol/server": "2.4.0",
     "@remotion/bundler": "4.0.543",
     "@remotion/captions": "4.0.543",
     "@remotion/cli": "4.0.543",

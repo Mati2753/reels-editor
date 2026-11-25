@@ -8,7 +8,7 @@ Cutroom turns uploaded footage into a finished vertical reel. Its director choos
 
 ## Browser studio
 
-Select **Edit my video** and choose a clip. The browser director makes a vertical MP4 and enables **Download reel**. **Learn a style from a video** saves the measured pacing and sound settings on this device. The browser edition processes the first three minutes of each file and exports at 720 × 1280. The first automatic transcription downloads a speech model.
+Select **Edit my video** and choose a clip. The browser director makes a vertical MP4 and enables **Download reel**. **Learn a style from a video** saves the measured pacing and sound settings on this device. The browser edition scans the references on their native presentation clock. It supports multiple clips, three output shapes, local style versions and editable timeline exports. The first automatic transcription downloads a speech model.
 
 To build the static studio for hosting, run `npm ci` and `npm run build:browser`. The output is in `dist/browser/`. Serve that directory over HTTPS.
 
@@ -45,3 +45,5 @@ Lire `CLAUDE.md` et `docs/DIRECTOR.md`. Pour une révision d’un montage du stu
 - `docs/EDL.md` : format du fichier de montage
 - `docs/DIRECTOR.md` : règles de montage du directeur
 - `docs/ROADMAP.md` : phases de développement
+
+[Capability matrix and validation results](docs/CAPABILITIES.md)

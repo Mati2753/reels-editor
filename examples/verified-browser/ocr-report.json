@@ -1,0 +1,382 @@
+{
+  "schemaVersion": 1,
+  "source": {
+    "duration": 3,
+    "startSeconds": 0,
+    "streamIndex": 0,
+    "width": 640,
+    "height": 360,
+    "timeBase": {
+      "numerator": 1,
+      "denominator": 10240
+    }
+  },
+  "requestedSeconds": [
+    0.25,
+    0.75,
+    1.25,
+    1.75,
+    2.25,
+    2.75
+  ],
+  "samples": [
+    {
+      "pts": 3072,
+      "seconds": 0.3,
+      "width": 640,
+      "height": 360,
+      "lines": [
+        {
+          "text": "MORNING LIGHT",
+          "confidence": 0.957,
+          "box": {
+            "x": 0.23125,
+            "y": 0.6666666666666666,
+            "width": 0.540625,
+            "height": 0.08055555555555556
+          },
+          "words": [
+            {
+              "text": "MORNING",
+              "confidence": 0.957,
+              "box": {
+                "x": 0.23125,
+                "y": 0.6666666666666666,
+                "width": 0.321875,
+                "height": 0.08055555555555556
+              }
+            },
+            {
+              "text": "LIGHT",
+              "confidence": 0.957,
+              "box": {
+                "x": 0.578125,
+                "y": 0.6666666666666666,
+                "width": 0.19375,
+                "height": 0.08055555555555556
+              }
+            }
+          ],
+          "colors": {
+            "ink": "#FFFFFF",
+            "background": "#141414",
+            "contrastRatio": 18.42,
+            "backgroundAgreement": 1,
+            "inkCoverage": 0.466,
+            "method": "word-box-pixel-clusters"
+          }
+        }
+      ],
+      "semanticRanks": []
+    },
+    {
+      "pts": 8192,
+      "seconds": 0.8,
+      "width": 640,
+      "height": 360,
+      "lines": [
+        {
+          "text": "MORNING LIGHT",
+          "confidence": 0.9615,
+          "box": {
+            "x": 0.23125,
+            "y": 0.6666666666666666,
+            "width": 0.540625,
+            "height": 0.08055555555555556
+          },
+          "words": [
+            {
+              "text": "MORNING",
+              "confidence": 0.9615,
+              "box": {
+                "x": 0.23125,
+                "y": 0.6666666666666666,
+                "width": 0.321875,
+                "height": 0.08055555555555556
+              }
+            },
+            {
+              "text": "LIGHT",
+              "confidence": 0.9615,
+              "box": {
+                "x": 0.578125,
+                "y": 0.6666666666666666,
+                "width": 0.19375,
+                "height": 0.08055555555555556
+              }
+            }
+          ],
+          "colors": {
+            "ink": "#FFFFFF",
+            "background": "#141414",
+            "contrastRatio": 18.42,
+            "backgroundAgreement": 1,
+            "inkCoverage": 0.466,
+            "method": "word-box-pixel-clusters"
+          }
+        }
+      ],
+      "semanticRanks": []
+    },
+    {
+      "pts": 13312,
+      "seconds": 1.3,
+      "width": 640,
+      "height": 360,
+      "lines": [
+        {
+          "text": "MORNING LIGHT",
+          "confidence": 0.9615,
+          "box": {
+            "x": 0.23125,
+            "y": 0.6666666666666666,
+            "width": 0.540625,
+            "height": 0.08055555555555556
+          },
+          "words": [
+            {
+              "text": "MORNING",
+              "confidence": 0.9615,
+              "box": {
+                "x": 0.23125,
+                "y": 0.6666666666666666,
+                "width": 0.321875,
+                "height": 0.08055555555555556
+              }
+            },
+            {
+              "text": "LIGHT",
+              "confidence": 0.9615,
+              "box": {
+                "x": 0.578125,
+                "y": 0.6666666666666666,
+                "width": 0.19375,
+                "height": 0.08055555555555556
+              }
+            }
+          ],
+          "colors": {
+            "ink": "#FFFFFF",
+            "background": "#141414",
+            "contrastRatio": 18.42,
+            "backgroundAgreement": 1,
+            "inkCoverage": 0.466,
+            "method": "word-box-pixel-clusters"
+          }
+        }
+      ],
+      "semanticRanks": []
+    },
+    {
+      "pts": 18432,
+      "seconds": 1.8,
+      "width": 640,
+      "height": 360,
+      "lines": [
+        {
+          "text": "QUIET FOREST",
+          "confidence": 0.9594,
+          "box": {
+            "x": 0.259375,
+            "y": 0.6666666666666666,
+            "width": 0.48125,
+            "height": 0.09722222222222222
+          },
+          "words": [
+            {
+              "text": "QUIET",
+              "confidence": 0.9577,
+              "box": {
+                "x": 0.259375,
+                "y": 0.6666666666666666,
+                "width": 0.203125,
+                "height": 0.09722222222222222
+              }
+            },
+            {
+              "text": "FOREST",
+              "confidence": 0.9611,
+              "box": {
+                "x": 0.4859375,
+                "y": 0.6666666666666666,
+                "width": 0.2546875,
+                "height": 0.08055555555555556
+              }
+            }
+          ],
+          "colors": {
+            "ink": "#FFFFFF",
+            "background": "#141414",
+            "contrastRatio": 18.42,
+            "backgroundAgreement": 1,
+            "inkCoverage": 0.438,
+            "method": "word-box-pixel-clusters"
+          }
+        }
+      ],
+      "semanticRanks": []
+    },
+    {
+      "pts": 23552,
+      "seconds": 2.3,
+      "width": 640,
+      "height": 360,
+      "lines": [
+        {
+          "text": "QUIET FOREST",
+          "confidence": 0.9598,
+          "box": {
+            "x": 0.259375,
+            "y": 0.6666666666666666,
+            "width": 0.48125,
+            "height": 0.09722222222222222
+          },
+          "words": [
+            {
+              "text": "QUIET",
+              "confidence": 0.9573,
+              "box": {
+                "x": 0.259375,
+                "y": 0.6666666666666666,
+                "width": 0.203125,
+                "height": 0.09722222222222222
+              }
+            },
+            {
+              "text": "FOREST",
+              "confidence": 0.9623,
+              "box": {
+                "x": 0.4859375,
+                "y": 0.6666666666666666,
+                "width": 0.2546875,
+                "height": 0.08055555555555556
+              }
+            }
+          ],
+          "colors": {
+            "ink": "#FFFFFF",
+            "background": "#141414",
+            "contrastRatio": 18.42,
+            "backgroundAgreement": 1,
+            "inkCoverage": 0.438,
+            "method": "word-box-pixel-clusters"
+          }
+        }
+      ],
+      "semanticRanks": []
+    },
+    {
+      "pts": 28672,
+      "seconds": 2.8,
+      "width": 640,
+      "height": 360,
+      "lines": [
+        {
+          "text": "QUIET FOREST",
+          "confidence": 0.961,
+          "box": {
+            "x": 0.259375,
+            "y": 0.6666666666666666,
+            "width": 0.48125,
+            "height": 0.09722222222222222
+          },
+          "words": [
+            {
+              "text": "QUIET",
+              "confidence": 0.957,
+              "box": {
+                "x": 0.259375,
+                "y": 0.6666666666666666,
+                "width": 0.203125,
+                "height": 0.09722222222222222
+              }
+            },
+            {
+              "text": "FOREST",
+              "confidence": 0.965,
+              "box": {
+                "x": 0.4859375,
+                "y": 0.6666666666666666,
+                "width": 0.2546875,
+                "height": 0.08055555555555556
+              }
+            }
+          ],
+          "colors": {
+            "ink": "#FFFFFF",
+            "background": "#141414",
+            "contrastRatio": 18.42,
+            "backgroundAgreement": 1,
+            "inkCoverage": 0.438,
+            "method": "word-box-pixel-clusters"
+          }
+        }
+      ],
+      "semanticRanks": []
+    }
+  ],
+  "cues": [
+    {
+      "text": "MORNING LIGHT",
+      "firstSeen": 0.3,
+      "lastSeen": 1.3,
+      "previousSample": null,
+      "nextSample": 1.8,
+      "observations": 3,
+      "confidence": 0.96,
+      "box": {
+        "x": 0.23125,
+        "y": 0.6666666666666666,
+        "width": 0.540625,
+        "height": 0.08055555555555556
+      }
+    },
+    {
+      "text": "QUIET FOREST",
+      "firstSeen": 1.8,
+      "lastSeen": 2.8,
+      "previousSample": 1.3,
+      "nextSample": null,
+      "observations": 3,
+      "confidence": 0.9600666666666666,
+      "box": {
+        "x": 0.259375,
+        "y": 0.6666666666666666,
+        "width": 0.48125,
+        "height": 0.09722222222222222
+      }
+    }
+  ],
+  "captionStyle": {
+    "status": "inferred",
+    "basis": "Repeated lower-screen placement with changing recognized text",
+    "distinctLines": 2,
+    "centerX": 0.50078125,
+    "centerY": 0.711111111111111,
+    "relativeTextHeight": 0.08888888888888889,
+    "medianWordsPerLine": 2,
+    "estimatedInk": "#FFFFFF",
+    "fontFamily": null,
+    "animation": null
+  },
+  "semantics": {
+    "status": "disabled",
+    "model": "Xenova/clip-vit-base-patch32",
+    "revision": "6b7c523703ae26e39be4b03774966f8571c7f523",
+    "labels": [],
+    "reason": null
+  },
+  "unresolved": [
+    "Exact font family and animation",
+    "Text visibility between sampled frames",
+    "Whether on-screen text is speech, signage or a title",
+    "Author intent"
+  ],
+  "runtime": {
+    "ocr": "tesseract 5.5.0",
+    "ffmpeg": "ffmpeg version 7.1.5-0+deb13u1 Copyright (c) 2000-2026 the FFmpeg developers",
+    "seconds": 0.9697134919988457,
+    "language": "eng",
+    "minConfidence": 0.65
+  }
+}

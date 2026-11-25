@@ -1,54 +1,84 @@
 import { parseSilencedetect } from "../src/pipeline/analysis/intervals";
 import { detectRetakes, groupSentences } from "../src/pipeline/analysis/speech";
-import { median, formatFromMeasurements } from "../src/studio/format-model";
+import {
+  REFERENCE_FRAME_FILTER,
+  frameEvidence,
+  audioEvidence,
+  makeReferenceEvidence,
+} from "../src/intelligence/evidence";
+import { describeReference } from "../src/intelligence/styles";
+import { median } from "../src/studio/format-model";
 
-export function inspect(core, run) {
-  core.ffprobe("-v", "error", "-show_format", "-show_streams", "-of", "json", "-o", "probe.json", "-i", "input");
+function readProbe(core, input) {
+  if (core.FS.analyzePath("probe.json").exists) core.FS.unlink("probe.json");
+  core.ffprobe("-v", "error", "-show_format", "-show_streams", "-of", "json", "-o", "probe.json", "-i", input);
   core.reset();
-  if (!core.FS.analyzePath("probe.json").exists) throw Error("This video format could not be read. Try an MP4 or MOV.");
-  const meta = JSON.parse(core.FS.readFile("probe.json", { encoding: "utf8" }));
-  const picture = meta.streams.find((s) => s.codec_type === "video" && !s.disposition?.attached_pic);
-  const seconds = Number(picture?.duration) || Number(meta.format.duration);
-  if (!picture || !(seconds > 0 && Number.isFinite(seconds)))
-    throw Error("This file does not contain a readable video.");
-  const audio = meta.streams.some((s) => s.codec_type === "audio");
-  // Cap the analysis portion, keeping the output small enough to finish on a phone.
-  const duration = Math.min(seconds, 180);
-  const log = run([
-    "-t",
-    String(duration),
+  if (!core.FS.analyzePath("probe.json").exists) throw Error("A video could not be read. Try an MP4 or MOV.");
+  const info = JSON.parse(core.FS.readFile("probe.json", { encoding: "utf8" }));
+  const video = info.streams?.find((s) => s.codec_type === "video" && !s.disposition?.attached_pic);
+  const duration = Number(video?.duration) || Number(info.format?.duration);
+  if (!video || !Number.isFinite(duration) || duration <= 0) throw Error("The file has no readable video track.");
+  const fraction = video.avg_frame_rate || video.r_frame_rate || "0/1";
+  const [a, b] = fraction.split("/").map(Number);
+  return {
+    ...info,
+    video,
+    duration,
+    source: {
+      width: video.width,
+      height: video.height,
+      duration,
+      fps: a && b ? a / b : null,
+      frameRate: fraction,
+      timeBase: video.time_base || null,
+    },
+  };
+}
+export function inspect(core, run, input, clip, { keepFrames = false, needSamples = true } = {}) {
+  const meta = readProbe(core, input);
+  const { source, duration } = meta;
+  run([
     "-i",
-    "input",
+    input,
     "-map",
-    "0:v:0",
-    "-vf",
-    "fps=4,scale=96:-2,signalstats,metadata=mode=print:key=lavfi.signalstats.YDIF,select='gt(scene,0.24)',showinfo",
+    "0:" + meta.video.index,
     "-an",
+    "-vf",
+    REFERENCE_FRAME_FILTER + ",metadata=mode=print:file=frames.txt",
+    "-vsync",
+    "0",
     "-f",
     "null",
     "-",
   ]);
-  const candidates = [...log.matchAll(/\bn:\s*\d+\s+pts:.*?\bpts_time:([\d.]+)/g)].map((m) => Number(m[1]));
-  const edges = [0];
-  for (const t of candidates) if (t - edges.at(-1) >= 0.55 && t < duration - 0.3) edges.push(t);
-  edges.push(duration);
-  const shots = edges
+  const visual = frameEvidence(core.FS.readFile("frames.txt", { encoding: "utf8" }), duration, { keepFrames });
+  core.FS.unlink("frames.txt");
+  const cuts = visual.cuts.filter((c) => c.at > 0 && c.at < duration);
+  const starts = [0, ...cuts.map((c) => c.at), duration];
+  const shots = starts
     .slice(1)
-    .map((end, i) => ({ id: "shot" + i, clip: "c1", start: edges[i], end, cutScore: i ? 25 : null }));
-  const deltas = [...log.matchAll(/lavfi\.signalstats\.YDIF=([\d.]+)/g)].slice(1).map((m) => Number(m[1]));
-  let raw = new Float32Array(0),
+    .map((end, i) => ({
+      id: clip + "-s" + (i + 1),
+      clip,
+      start: starts[i],
+      end,
+      cutScore: i ? cuts[i - 1].score : null,
+    }));
+  let audio = null,
+    raw = null,
     silence = [],
-    levels = [],
-    mean = null;
-  if (audio) {
-    const sound = run([
-      "-t",
-      String(duration),
+    integratedLufs = null,
+    truePeakDbtp = null;
+  const hasAudio = meta.streams.some((s) => s.codec_type === "audio");
+  if (hasAudio) {
+    const log = run([
       "-i",
-      "input",
+      input,
+      "-map",
+      "0:a:0",
       "-vn",
       "-af",
-      "silencedetect=n=-38dB:d=0.25",
+      "silencedetect=n=-38dB:d=0.25,ebur128=peak=true:framelog=verbose",
       "-ac",
       "1",
       "-ar",
@@ -58,39 +88,77 @@ export function inspect(core, run) {
       "analysis.pcm",
     ]);
     const data = core.FS.readFile("analysis.pcm");
-    raw = new Float32Array(data.buffer, data.byteOffset, Math.floor(data.byteLength / 4));
-    silence = parseSilencedetect(sound, duration);
-    let sums = 0;
-    for (let i = 0; i < raw.length; i += 1600) {
-      const stop = Math.min(i + 1600, raw.length);
-      let energy = 0;
-      for (let j = i; j < stop; j++) energy += raw[j] * raw[j];
-      sums += energy;
-      levels.push(Math.max(-96, 10 * Math.log10(Math.max(1e-10, energy / (stop - i)))));
-    }
-    mean = Math.max(-96, 10 * Math.log10(Math.max(1e-10, sums / Math.max(1, raw.length))));
+    const pcm = new Float32Array(data.buffer, data.byteOffset, Math.floor(data.byteLength / 4));
+    audio = audioEvidence(pcm, 16000);
+    raw = needSamples ? pcm : null;
+    core.FS.unlink("analysis.pcm");
+    silence = parseSilencedetect(log, duration);
+    const measured = Number(/I:\s*(-?[\d.]+)\s*LUFS/i.exec(log.split("Summary:").at(-1))?.[1]);
+    integratedLufs = Number.isFinite(measured) && measured > -70 ? measured : null;
+    const peak = Number(/True peak:[\s\S]*?Peak:\s*(-?[\d.]+)/i.exec(log.split("Summary:").at(-1))?.[1]);
+    truePeakDbtp = Number.isFinite(peak) ? peak : null;
   }
-  return { seconds, duration, audio, raw, silence, levels, mean, shots, motion: deltas.length ? median(deltas) : 0 };
-}
-
-export function learn(name, audioVideo, cueWords = null) {
-  const { duration, audio, shots, silence, mean, motion } = audioVideo;
-  const share = audio ? silence.reduce((n, s) => n + s.end - s.start, 0) / duration : null;
-  const style = formatFromMeasurements(
-    "ref-" + crypto.randomUUID(),
-    name,
+  const evidence = makeReferenceEvidence({ source, visual, audio, integratedLufs });
+  return {
+    input,
+    clip,
+    seconds: duration,
     duration,
-    shots.map((s) => s.end - s.start),
-    motion,
-    0,
-    audio,
-    share,
-    mean,
-    cueWords,
-  );
-  return { ...style, image: "./assets/forest.jpg" };
+    audio: hasAudio,
+    raw,
+    silence,
+    shots,
+    visual,
+    evidence,
+    meta,
+    truePeakDbtp,
+  };
 }
-
+export function referenceCard(core, run, media, id, name) {
+  const stream = media.meta.streams.find(
+    (s) => s.codec_type === "subtitle" && ["mov_text", "subrip", "webvtt", "ass", "ssa"].includes(s.codec_name),
+  );
+  let cueWords = null,
+    subtitleCues = null;
+  if (stream) {
+    try {
+      run(["-i", media.input, "-map", "0:" + stream.index, "-f", "srt", "ref.srt"]);
+      subtitleCues = core.FS.readFile("ref.srt", { encoding: "utf8" });
+      const counts = subtitleCues
+        .trim()
+        .split(/\r?\n\s*\n/)
+        .map(
+          (c) =>
+            c
+              .split(/\r?\n/)
+              .slice(2)
+              .join(" ")
+              .replace(/<[^>]*>|\{[^}]+\}/g, "")
+              .trim()
+              .split(/\s+/)
+              .filter(Boolean).length,
+        )
+        .filter(Boolean);
+      if (counts.length) cueWords = median(counts);
+    } catch {
+      /* Unreadable embedded text does not identify a caption style. */
+    }
+  }
+  const pauses = media.audio ? media.silence.reduce((n, s) => n + s.end - s.start, 0) / media.duration : null;
+  return {
+    card: describeReference(
+      id,
+      name,
+      media.evidence,
+      cueWords,
+      pauses,
+      media.visual.frames?.some((f) => f.luma != null)
+        ? median(media.visual.frames.flatMap((f) => (f.luma == null ? [] : [f.luma])))
+        : null,
+    ),
+    subtitleCues,
+  };
+}
 export function analysisFor(media, words) {
   const sentences = groupSentences(words, 0.52);
   return {
@@ -98,7 +166,22 @@ export function analysisFor(media, words) {
     shots: media.shots,
     sentences,
     retakes: detectRetakes(words, sentences),
-    silences: media.silence.map((s, i) => ({ ...s, id: "p" + i, clip: "c1", duration: s.end - s.start })),
-    loudness: [{ clip: "c1", rms: { step: 0.1, db: media.levels } }],
+    silences: media.silence.map((s, i) => ({
+      ...s,
+      id: media.clip + "-p" + i,
+      clip: media.clip,
+      duration: s.end - s.start,
+    })),
+    loudness: media.evidence.audio
+      ? [
+          {
+            clip: media.clip,
+            rms: {
+              step: media.evidence.audio.envelopeStep,
+              db: media.evidence.audio.envelope.map((v) => (typeof v === "number" ? v : -96)),
+            },
+          },
+        ]
+      : [],
   };
 }

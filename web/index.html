@@ -31,9 +31,10 @@
           ><a class="soft" id="save" href="./assets/sample-cut.mp4" download="Alpine field notes.mp4">Download reel</a>
         </div>
       </div>
-      <input type="file" hidden id="file" accept="video/*,.mp4,.mov,.m4v,.webm,.mkv,.avi" /><input
+      <input type="file" multiple hidden id="file" accept="video/*,.mp4,.mov,.m4v,.webm,.mkv,.avi" /><input
         type="file"
         hidden
+        multiple
         id="reference"
         accept="video/*,.mp4,.mov,.m4v,.webm,.mkv,.avi"
       /><input type="file" hidden id="srt" accept=".srt" />
@@ -70,6 +71,20 @@
               <span id="length">8.6 seconds</span>
             </div>
             <div id="shots" aria-label="Scenes in the edit"></div>
+            <details id="timeline-tools" hidden>
+              <summary>Edit or export timeline</summary>
+              <div class="options">
+                <label
+                  >Scene
+                  <select id="scene"></select></label
+                ><label>Source start (seconds) <input id="trim-start" type="number" step="0.033333" min="0" /></label
+                ><label>Source end (seconds) <input id="trim-end" type="number" step="0.033333" min="0" /></label>
+                <button class="soft" id="trim">Apply trim</button
+                ><button class="link" id="cut-json">Download editable timeline</button
+                ><button class="link" id="otio">Download OpenTimelineIO</button
+                ><button class="link" id="qa">Download quality report</button>
+              </div>
+            </details>
           </div>
         </section>
         <aside class="panel director">
@@ -89,9 +104,57 @@
               </div>
             </div>
             <button class="learn" id="learn">Learn a style from a video</button>
+            <details id="style-editor">
+              <summary>Saved style and feedback</summary>
+              <div class="options">
+                <label
+                  >Typical shot length in seconds <input type="number" id="pace" min="0.8" max="12" step="0.1"
+                /></label>
+                <label
+                  >Words per subtitle
+                  <select id="cue">
+                    <option>2</option>
+                    <option>3</option>
+                    <option>4</option>
+                  </select></label
+                >
+                <button id="remember-style" class="soft">Save as a new version</button>
+                <button id="evidence" class="link" hidden>Download reference measurements</button>
+              </div>
+            </details>
             <details id="options">
               <summary>Edit settings</summary>
               <div class="options">
+                <label class="option"
+                  >Frame shape
+                  <select id="ratio">
+                    <option value="vertical">Vertical</option>
+                    <option value="horizontal">Horizontal</option>
+                    <option value="square">Square</option>
+                  </select></label
+                >
+                <label class="option"
+                  >Resolution
+                  <select id="quality">
+                    <option value="draft">Draft</option>
+                    <option selected value="standard">Standard</option>
+                    <option value="high">High</option>
+                  </select></label
+                >
+                <label class="option"
+                  ><input type="checkbox" id="broll" checked /> Illustrate relevant phrases with B-roll</label
+                >
+                <label class="option"
+                  ><input type="checkbox" id="visual" /> Analyze representative frames with the visual model</label
+                >
+                <label class="option"
+                  >Automatic quality revisions
+                  <select id="iterations">
+                    <option>0</option>
+                    <option selected>1</option>
+                    <option>2</option>
+                  </select></label
+                >
                 <label class="option"
                   >Maximum length
                   <select id="target">
@@ -117,7 +180,7 @@
               </ul>
             </div>
             <p class="privacy">
-              Your footage stays on this device. The director edits from the first three minutes. Keep this tab open
+              Your footage stays on this device. Select one or several clips or reference videos. Keep this tab open
               while it works.
             </p>
           </div>
