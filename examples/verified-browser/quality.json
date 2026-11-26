@@ -1,0 +1,82 @@
+[
+  {
+    "iteration": 0,
+    "adjustment": {
+      "brightness": 0,
+      "gainDb": 0
+    },
+    "report": {
+      "status": "review",
+      "checks": [
+        {
+          "id": "frame-size",
+          "status": "pass",
+          "basis": "Probed 360×360 pixels. Planned 360×360."
+        },
+        {
+          "id": "frame-rate",
+          "status": "pass",
+          "basis": "Probed video rate 30.0003 fps. Planned 30 fps."
+        },
+        {
+          "id": "frame-count",
+          "status": "pass",
+          "basis": "Counted 422 output frames. The planned timeline has 422."
+        },
+        {
+          "id": "duration",
+          "status": "pass",
+          "basis": "Probed video duration 14.067 s. Planned 14.067 s with a one-frame tolerance."
+        },
+        {
+          "id": "picture-level",
+          "status": "unmeasured",
+          "basis": "Comparison requires measured output luma and a comparable target in the same color range."
+        },
+        {
+          "id": "cut-cadence",
+          "status": "unmeasured",
+          "basis": "Comparison requires a measured reference cadence and observed cuts in the output."
+        },
+        {
+          "id": "true-peak",
+          "status": "pass",
+          "basis": "Measured true peak -5.5 dBTP, delivery ceiling -1 dBTP (0.1 dB tolerance)."
+        },
+        {
+          "id": "sample-clipping",
+          "status": "pass",
+          "basis": "Decoded full-scale scan counted 0 samples in 0 intervals."
+        },
+        {
+          "id": "caption-presence",
+          "status": "unmeasured",
+          "basis": "Rendered-picture text detections and authored expected cues are both needed."
+        },
+        {
+          "id": "caption-timing",
+          "status": "pass",
+          "basis": "Checked 6 authored cues. Rendered observations with independently measured cue boundaries: 0."
+        },
+        {
+          "id": "caption-layout",
+          "status": "unmeasured",
+          "basis": "Rendered text bounds unavailable. Authored boxes checked: 0."
+        },
+        {
+          "id": "caption-contrast",
+          "status": "unmeasured",
+          "basis": "No local foreground/background contrast measurements were supplied."
+        }
+      ],
+      "issues": [],
+      "metrics": {
+        "lumaDelta": null,
+        "medianShotSeconds": 2.4166685000000006,
+        "peakExcessDb": 0,
+        "clippedSamples": 0
+      },
+      "omittedIssueCount": 0
+    }
+  }
+]

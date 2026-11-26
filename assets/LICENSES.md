@@ -11,3 +11,15 @@ Tout fichier ajouté ici doit pouvoir être redistribué avec le dépôt. Une li
 | `studio/alpine.jpg`, `studio/forest.jpg`, `studio/lake.jpg` | Photos Unsplash [montagnes](https://images.unsplash.com/photo-1464822759023-fed622ff2c3b), [forêt](https://images.unsplash.com/photo-1472396961693-142e6e269027), [lac](https://images.unsplash.com/photo-1470770841072-f978cf4d019e) | [Unsplash License](https://unsplash.com/license) |
 | `studio/alpine-field-notes.mp4`, `studio/sample-cut.mp4`, `studio/poster.jpg`, `studio/strip.jpg`, `studio/sample-cover.jpg` | Montage des trois photos ci-dessus, narration originale synthétisée avec Flite | Photos sous licence Unsplash, montage et narration créés pour ce dépôt |
 | `music/drift.m4a`, `sfx/pulse.wav`, `sfx/sweep.wav`, `studio/*.png` | Musique et effets synthétisés pour le studio, formes d’onde générées à partir des enregistrements | CC0-1.0 |
+
+Browser OCR uses the Apache-2.0 Tesseract.js and Tesseract.js-core distributions and English language data from the @tesseract.js-data/eng npm package. The build includes the core license and the bundled worker’s redistribution notices beside the engine. [Tesseract.js](https://github.com/naptha/tesseract.js) · [Training data](https://github.com/naptha/tessdata)
+
+Browser face framing uses Nenad Markus’s MIT-licensed picojs implementation at afffa50ec4134a47005f2cbf8112eaa69f65f37e and the official pico facefinder cascade at c2e81f9d23cc11d1a612fd21e4f9de0921a5d0d9. The MIT notice ships beside both files. [picojs](https://github.com/nenadmarkus/picojs) · [pico](https://github.com/nenadmarkus/pico)
+
+Portrait matting bundles an Apache-2.0 MODNet ONNX conversion from the pinned Xenova/modnet revision documented in the validation report and the MIT-licensed ONNX Runtime Web engine. Corresponding notices are shipped alongside the model. The example NASA portrait of Eileen Collins is in the public domain. [Model and runtime provenance](../docs/PORTRAIT-MATTES.md)
+
+Audio event detection ships Google YAMNet, the AudioSet class map and the zeropointnine ONNX conversion. The model distribution declares Apache-2.0. Its license ships in `audio-model/LICENSE.txt`. [Source and revision](../docs/AUDIO-DIRECTION.md)
+
+The four-second silent solar cutaway uses NASA/SDO observations of the April 2, 2014 flare from *Graceful Eruption*, distributed by NASA’s Goddard Space Flight Center. The excerpt starts 16 seconds into the distributed video. The original audio is excluded. Credit NASA/SDO and observe the agency’s restrictions on endorsement, marks and third-party content. [Media record](https://images.nasa.gov/details/GSFC_20140404_SDO_m11517_Flare) · [NASA media guidelines](https://www.nasa.gov/nasa-brand-center/images-and-media/)
+
+The Amber print LUT, transparent paper grain, octahedron OBJ mesh, corresponding rendered turntable and star glint in `production/` are original project assets dedicated to the public domain under CC0-1.0. The warm-color preview uses the licensed lake photo above. [CC0](https://creativecommons.org/publicdomain/zero/1.0/)

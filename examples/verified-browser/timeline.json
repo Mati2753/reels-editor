@@ -1,0 +1,428 @@
+{
+  "schema": "org.reelforge.cut",
+  "version": 1,
+  "revision": 1,
+  "title": "Alpine field notes",
+  "output": {
+    "width": 360,
+    "height": 360,
+    "ratio": "1:1",
+    "rate": {
+      "numerator": 30,
+      "denominator": 1
+    }
+  },
+  "sources": [
+    {
+      "id": "c1",
+      "name": "alpine-field-notes.mp4",
+      "bytes": 1094188,
+      "duration": 12,
+      "hasAudio": true
+    },
+    {
+      "id": "c2",
+      "name": "reference.mp4",
+      "bytes": 6849,
+      "duration": 6,
+      "hasAudio": false
+    }
+  ],
+  "scenes": [
+    {
+      "id": "s1",
+      "clip": "c1",
+      "inFrame": 0,
+      "outFrame": 89
+    },
+    {
+      "id": "s2",
+      "clip": "c1",
+      "inFrame": 129,
+      "outFrame": 210
+    },
+    {
+      "id": "s3",
+      "clip": "c1",
+      "inFrame": 248,
+      "outFrame": 320
+    },
+    {
+      "id": "s4",
+      "clip": "c2",
+      "inFrame": 0,
+      "outFrame": 180
+    }
+  ],
+  "captions": [
+    {
+      "id": "cue-1",
+      "clip": "c1",
+      "sceneId": "s1",
+      "startFrame": 0,
+      "endFrame": 52,
+      "text": "Follow the morning light"
+    },
+    {
+      "id": "cue-2",
+      "clip": "c1",
+      "sceneId": "s1",
+      "startFrame": 52,
+      "endFrame": 88,
+      "text": "into the mountains."
+    },
+    {
+      "id": "cue-3",
+      "clip": "c1",
+      "sceneId": "s2",
+      "startFrame": 131,
+      "endFrame": 176,
+      "text": "The quiet forest changes"
+    },
+    {
+      "id": "cue-4",
+      "clip": "c1",
+      "sceneId": "s2",
+      "startFrame": 176,
+      "endFrame": 210,
+      "text": "the pace."
+    },
+    {
+      "id": "cue-5",
+      "clip": "c1",
+      "sceneId": "s3",
+      "startFrame": 256,
+      "endFrame": 287,
+      "text": "Stay until the lake"
+    },
+    {
+      "id": "cue-6",
+      "clip": "c1",
+      "sceneId": "s3",
+      "startFrame": 287,
+      "endFrame": 320,
+      "text": "comes into view."
+    }
+  ],
+  "metadata": {
+    "sourceDigests": [
+      "cc343c413600a2020f2fcf2a965b03ddc331298afe1bb8d7bbc992ad0edbe41f",
+      "59f2fdfeeaaec62ba9c18cbd34c3ce7182f30f31e275d1c4d9a11f75e64cab72"
+    ],
+    "settings": {
+      "ratio": "square",
+      "quality": "draft",
+      "format": "cinematic",
+      "cuts": true,
+      "motion": true,
+      "captions": true,
+      "sound": true,
+      "target": 30,
+      "director": "local"
+    },
+    "decisions": [
+      {
+        "scene": "s1",
+        "clip": "c1",
+        "sourceIn": 0,
+        "sourceOut": 2.966666666666667,
+        "decision": "keep",
+        "basis": "Preserves a continuous spoken phrase",
+        "words": "Follow the morning light into the mountains.",
+        "framing": "Hold the framing",
+        "transition": "cut",
+        "score": 1.5420260606060605,
+        "label": null,
+        "sequence": 1,
+        "status": "editorial inference"
+      },
+      {
+        "scene": "s2",
+        "clip": "c1",
+        "sourceIn": 4.3,
+        "sourceOut": 7,
+        "decision": "keep",
+        "basis": "Preserves a continuous spoken phrase",
+        "words": "The quiet forest changes the pace.",
+        "framing": "Hold the framing",
+        "transition": "fade",
+        "score": 1.4452948051948051,
+        "label": null,
+        "sequence": 2,
+        "status": "editorial inference"
+      },
+      {
+        "scene": "s3",
+        "clip": "c1",
+        "sourceIn": 8.266666666666667,
+        "sourceOut": 10.666666666666666,
+        "decision": "keep",
+        "basis": "Preserves a continuous spoken phrase",
+        "words": "Stay until the lake comes into view.",
+        "framing": "Hold the framing",
+        "transition": "fade",
+        "score": 1.6152545454545457,
+        "label": null,
+        "sequence": 3,
+        "status": "editorial inference"
+      },
+      {
+        "scene": "s4",
+        "clip": "c2",
+        "sourceIn": 0,
+        "sourceOut": 6,
+        "decision": "keep",
+        "basis": "Retains source order within the target duration",
+        "words": "",
+        "framing": "Move to support a change in picture or emphasis",
+        "transition": "fade",
+        "score": 0,
+        "label": null,
+        "sequence": 4,
+        "status": "editorial inference"
+      }
+    ],
+    "grade": {
+      "brightness": 0,
+      "contrast": 1,
+      "saturation": 1,
+      "targetLuma": null,
+      "gainDb": 0
+    },
+    "broll": {
+      "assetId": "photo-alpine",
+      "file": "broll-alpine.jpg",
+      "start": 0,
+      "end": 2.82,
+      "matched": [
+        "mountains"
+      ],
+      "reason": "The spoken phrase “Follow the morning light into the mountains.” names “mountains”, visible in Alpine valley.",
+      "score": 6
+    },
+    "effects": {
+      "segments": [
+        {
+          "id": "s1",
+          "type": "clip",
+          "clip": "c1",
+          "in": 0,
+          "out": 2.966666666666667,
+          "framing": {
+            "scale": 1,
+            "origin": {
+              "x": 0.5,
+              "y": 0.5
+            }
+          }
+        },
+        {
+          "id": "s2",
+          "type": "clip",
+          "clip": "c1",
+          "in": 4.3,
+          "out": 7,
+          "framing": {
+            "scale": 1,
+            "origin": {
+              "x": 0.5,
+              "y": 0.5
+            }
+          }
+        },
+        {
+          "id": "s3",
+          "type": "clip",
+          "clip": "c1",
+          "in": 8.266666666666667,
+          "out": 10.666666666666666,
+          "framing": {
+            "scale": 1,
+            "origin": {
+              "x": 0.5,
+              "y": 0.5
+            }
+          }
+        },
+        {
+          "id": "s4",
+          "type": "clip",
+          "clip": "c2",
+          "in": 0,
+          "out": 6,
+          "framing": {
+            "scale": 1,
+            "origin": {
+              "x": 0.5,
+              "y": 0.5
+            },
+            "move": {
+              "toScale": 1.039,
+              "ease": "easeInOut"
+            }
+          }
+        }
+      ],
+      "transitions": [
+        {
+          "between": [
+            "s1",
+            "s2"
+          ],
+          "type": "fade",
+          "duration": 0.36
+        },
+        {
+          "between": [
+            "s2",
+            "s3"
+          ],
+          "type": "fade",
+          "duration": 0.36
+        },
+        {
+          "between": [
+            "s3",
+            "s4"
+          ],
+          "type": "fade",
+          "duration": 0.36
+        }
+      ],
+      "overlays": [
+        {
+          "id": "opening-title",
+          "component": "HookTitle",
+          "props": {
+            "text": "Alpine field notes"
+          },
+          "at": {
+            "segment": "s1"
+          },
+          "duration": 2.2,
+          "layer": "front",
+          "zone": "top"
+        }
+      ],
+      "audio": {
+        "voice": {
+          "targetLufs": -14,
+          "denoise": false
+        },
+        "music": {
+          "file": "music/drift.m4a",
+          "gainDb": -17,
+          "duck": true,
+          "fadeOut": 0.8
+        },
+        "sfx": [
+          {
+            "file": "sfx/sweep.wav",
+            "at": {
+              "segment": "s2"
+            },
+            "gainDb": -15
+          },
+          {
+            "file": "sfx/sweep.wav",
+            "at": {
+              "segment": "s3"
+            },
+            "gainDb": -15
+          },
+          {
+            "file": "sfx/sweep.wav",
+            "at": {
+              "segment": "s4"
+            },
+            "gainDb": -15
+          }
+        ]
+      }
+    },
+    "semanticObservations": [],
+    "referenceStyle": "cinematic",
+    "quality": [
+      {
+        "iteration": 0,
+        "adjustment": {
+          "brightness": 0,
+          "gainDb": 0
+        },
+        "report": {
+          "status": "review",
+          "checks": [
+            {
+              "id": "frame-size",
+              "status": "pass",
+              "basis": "Probed 360×360 pixels. Planned 360×360."
+            },
+            {
+              "id": "frame-rate",
+              "status": "pass",
+              "basis": "Probed video rate 30.0003 fps. Planned 30 fps."
+            },
+            {
+              "id": "frame-count",
+              "status": "pass",
+              "basis": "Counted 422 output frames. The planned timeline has 422."
+            },
+            {
+              "id": "duration",
+              "status": "pass",
+              "basis": "Probed video duration 14.067 s. Planned 14.067 s with a one-frame tolerance."
+            },
+            {
+              "id": "picture-level",
+              "status": "unmeasured",
+              "basis": "Comparison requires measured output luma and a comparable target in the same color range."
+            },
+            {
+              "id": "cut-cadence",
+              "status": "unmeasured",
+              "basis": "Comparison requires a measured reference cadence and observed cuts in the output."
+            },
+            {
+              "id": "true-peak",
+              "status": "pass",
+              "basis": "Measured true peak -5.5 dBTP, delivery ceiling -1 dBTP (0.1 dB tolerance)."
+            },
+            {
+              "id": "sample-clipping",
+              "status": "pass",
+              "basis": "Decoded full-scale scan counted 0 samples in 0 intervals."
+            },
+            {
+              "id": "caption-presence",
+              "status": "unmeasured",
+              "basis": "Rendered-picture text detections and authored expected cues are both needed."
+            },
+            {
+              "id": "caption-timing",
+              "status": "pass",
+              "basis": "Checked 6 authored cues. Rendered observations with independently measured cue boundaries: 0."
+            },
+            {
+              "id": "caption-layout",
+              "status": "unmeasured",
+              "basis": "Rendered text bounds unavailable. Authored boxes checked: 0."
+            },
+            {
+              "id": "caption-contrast",
+              "status": "unmeasured",
+              "basis": "No local foreground/background contrast measurements were supplied."
+            }
+          ],
+          "issues": [],
+          "metrics": {
+            "lumaDelta": null,
+            "medianShotSeconds": 2.4166685000000006,
+            "peakExcessDb": 0,
+            "clippedSamples": 0
+          },
+          "omittedIssueCount": 0
+        }
+      }
+    ]
+  }
+}

@@ -206,3 +206,23 @@ Uniquement ce qu'il ne peut pas déduire : l'objectif du Reel (éduquer, vendre,
 ## Direction automatique du studio
 
 Le format appris conserve la cadence mesurée des plans, le mouvement entre images, les flashes, le niveau audio et les groupes de mots des sous-titres intégrés. La direction utilise ces faits pour régler le rythme, les zooms, les transitions, les pages de sous-titres et le mix. Un titre ouvre le montage. Les chiffres parlés peuvent déclencher un `BigNumber` ancré au mot. Les coupes respectent les mots et privilégient les groupes de phrases quand la durée impose une sélection. Les raisons du montage se trouvent dans `edl.notes` et dans le panneau de décisions du studio. Les mesures et limites sont décrites dans `docs/STUDIO.md`.
+
+### Reference-driven browser direction
+
+The browser keeps source frame measurements and reference-relative cut candidates. A visual change or spoken emphasis can justify movement. Silence, source changes and supported changes of scene guide joins and accents. A measured reference takes precedence over the built-in preset. A licensed illustration requires matching words in retained speech. The portable cut records its source and reason. Unknown narrative intent remains available for human review.
+
+For references with at least six shots, compare the opening, middle and closing thirds with each reference’s typical shot length. Apply the observed ratios within 0.65–1.5 of the template pace. Speech boundaries still constrain individual cuts.
+
+English OCR samples six reference frames. Two different high-confidence lines in the same centered band across distinct times can guide subtitle placement, apparent size and grouping. A static logo alone supplies no caption rule. Three evenly distributed authored cues are sampled after rendering. A failed reading or low local contrast can trigger a backplate on the affected cue within the selected iteration limit.
+
+A viewer can give feedback from a rendered cut. Retrieve it for subsequent projects sharing a template family and speech presence. A still camera request removes programmed zooms and zoom transitions. A rejected illustration cannot be selected again within that scope.
+
+A browser edit can follow a single clearly detected frontal face. Within each retained scene, apply only a track with adequate temporal coverage and without competing strong detections or large jumps. Use the median single-face position from saved references as the composition target. Fall back to centered cropping when evidence is weak. Screen tracking takes precedence when the user requests backdrop replacement and the screen detector accepts the source.
+
+When captioned speech states one exact percentage of a whole, a generated bar may illustrate the quantity if no stock match was selected. Skip ambiguous, negative, comparative and out-of-range quantities. Global image scale fitting across reference shots can guide a pullback. Exclude hard cuts and pairs with too little improvement across the image.
+
+### Protéger le son du tournage
+
+Le directeur conserve la musique déjà présente lorsque les observations couvrent suffisamment les séquences retenues. Après le rendu, il compare la parole dans chaque plan avec les mêmes instants du rush. Une baisse persistante de la parole accompagnée d'une hausse de la musique justifie une atténuation localisée de la musique et des effets ajoutés. Le rapport conserve les passages encore problématiques. Un mix explicitement approuvé peut être repris pour la même famille de style et le même contexte de parole. [Mesures et exemples](AUDIO-DIRECTION.md)
+
+Le directeur peut insérer une vidéo de coupe lorsque la phrase identifie clairement son sujet. L’extrait du Solar Dynamics Observatory illustre les mentions littérales d’une éruption solaire. Le son du rush reste la source narrative. Le fichier de montage conserve la justification, le crédit et le lien de provenance. Une texture ou un effet de brillance du catalogue natif reste un choix explicite. [Exemples de rendu](PRODUCTION-ASSETS.md)

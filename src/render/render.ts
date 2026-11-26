@@ -7,16 +7,26 @@ import { measureLoudness } from "../pipeline/analysis/media";
 import path from "node:path";
 import { PipelineError, readJson, type ProjectPaths } from "../pipeline/project";
 import { ProbeSchema } from "../pipeline/schemas";
-import { ffmpeg, ffprobeJson } from "../pipeline/util/exec";
+import { ffmpeg, ffprobeJson, run } from "../pipeline/util/exec";
 import { exists, fingerprint, StepState, writeJsonIfChanged } from "../pipeline/util/state";
 import { resolvedProject, type EdlTarget } from "./project";
 import { browserExecutable, bundleReel, chromiumOptions, rendererFingerprint, renderDir, selectReel } from "./remotion";
 
 /** Bump when the encoding or the audio finishing changes. */
-const RENDER_VERSION = 2;
+const RENDER_VERSION = 3;
 
 /** True peak ceiling after loudness normalization, dBTP. */
 const TRUE_PEAK = -1;
+
+let adapterProbe: Promise<boolean> | undefined;
+function canEncodeOnAdapter() {
+  if (!adapterProbe) {
+    const encoder = process.platform === "darwin" ? "h264_videotoolbox" : "h264_nvenc";
+    adapterProbe = run("ffmpeg", ["-hide_banner","-loglevel","error","-f","lavfi","-i","color=s=128x128:r=30",
+      "-frames:v","1","-c:v",encoder,"-f","null","-"]).then(()=>true,()=>false);
+  }
+  return adapterProbe;
+}
 
 export interface RenderOptions {
   browserExecutable?: string;
@@ -85,8 +95,11 @@ export async function render(paths: ProjectPaths, target: EdlTarget, options: Re
   const edl = await resolvedProject(paths, target, log);
   const probe = await readJson(paths.probe, ProbeSchema, `run "reels ingest ${paths.slug}" first.`);
   const output = path.join(paths.out, `${target.name}.mp4`);
-  const state = await StepState.load(paths.work, "render");
-  const key = fingerprint(RENDER_VERSION, edl, probe.clips.map((c) => c.sha256), await rendererFingerprint());
+  const state = await StepState.load(paths.renderWorkspace ?? paths.work, "render");
+  const cpuOnly = process.env.REELS_ENCODER === "cpu" || !(await canEncodeOnAdapter());
+  const policy = cpuOnly ? {hardwareAcceleration:"disable" as const,crf:18}
+    : {hardwareAcceleration:"if-possible" as const,videoBitrate:"12M"};
+  const key = fingerprint(RENDER_VERSION, policy, edl, probe.clips.map((c) => c.sha256), await rendererFingerprint());
   await writeJsonIfChanged(path.join(renderDir(paths), `${target.name}.resolved.json`), edl);
   const frames = edl.durationInFrames;
   if (state.get(`mp4:${target.name}`) === key && (await exists(output))) {
@@ -100,11 +113,11 @@ export async function render(paths: ProjectPaths, target: EdlTarget, options: Re
   const composition = await selectReel(serveUrl, edl, browser);
   const raw = path.join(renderDir(paths), `${target.name}.remotion.mp4`);
   let lastLog = 0;
-  await renderMedia({
+  const encode = (encoder:typeof policy) => renderMedia({
     composition,
     serveUrl,
     codec: "h264",
-    crf: 18,
+    ...encoder,
     audioCodec: "aac",
     enforceAudioTrack: true,
     audioBitrate: "320k",
@@ -123,6 +136,11 @@ export async function render(paths: ProjectPaths, target: EdlTarget, options: Re
       }
     },
   });
+  try {await encode(policy);} catch(error) {
+    if(cpuOnly || !/encoder|nvenc|videotoolbox|hardware acceleration/i.test(String(error)))throw error;
+    log("Hardware encoder could not start. Finishing with the CPU encoder.");
+    await encode({hardwareAcceleration:"disable",crf:18});
+  }
   const remotionSeconds = (Date.now() - started) / 1000;
 
   log(`normalizing the voice to ${edl.audio.voice.targetLufs} LUFS...`);

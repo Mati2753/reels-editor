@@ -1,0 +1,327 @@
+{
+  "schema": "org.reelforge.cut",
+  "version": 1,
+  "revision": 1,
+  "title": "green screen test",
+  "output": {
+    "width": 360,
+    "height": 640,
+    "ratio": "9:16",
+    "rate": {
+      "numerator": 30,
+      "denominator": 1
+    }
+  },
+  "sources": [
+    {
+      "id": "c1",
+      "name": "green-screen-test.mp4",
+      "bytes": 8534,
+      "duration": 6,
+      "hasAudio": false
+    }
+  ],
+  "scenes": [
+    {
+      "id": "s1",
+      "clip": "c1",
+      "inFrame": 0,
+      "outFrame": 180
+    }
+  ],
+  "captions": [],
+  "metadata": {
+    "sourceDigests": [
+      "1b4c046316d1eeaceed546ce1f7768023754c19b984bdcc5833394a7ab97d7b1"
+    ],
+    "memory": {
+      "family": "cinematic",
+      "context": "picture",
+      "applied": [],
+      "editId": "ff69a323-604e-4246-9a5c-8d1e8f0fde2a"
+    },
+    "settings": {
+      "ratio": "vertical",
+      "quality": "draft",
+      "screen": true,
+      "background": "#26334a",
+      "visual": false,
+      "broll": false,
+      "iterations": 1,
+      "format": "cinematic",
+      "target": 30,
+      "cuts": true,
+      "motion": false,
+      "captions": true,
+      "sound": false,
+      "director": "local",
+      "brief": ""
+    },
+    "decisions": [
+      {
+        "scene": "s1",
+        "clip": "c1",
+        "sourceIn": 0,
+        "sourceOut": 6,
+        "decision": "keep",
+        "basis": "Retains source order within the target duration",
+        "words": "",
+        "framing": "Hold the framing",
+        "transition": "cut",
+        "score": 0,
+        "label": null,
+        "sequence": 1,
+        "status": "editorial inference"
+      }
+    ],
+    "grade": {
+      "brightness": 0,
+      "contrast": 1,
+      "saturation": 1,
+      "targetLuma": null,
+      "gainDb": 0
+    },
+    "broll": null,
+    "effects": {
+      "segments": [
+        {
+          "id": "s1",
+          "type": "clip",
+          "clip": "c1",
+          "in": 0,
+          "out": 6,
+          "framing": {
+            "scale": 1,
+            "origin": {
+              "x": 0.5,
+              "y": 0.5
+            }
+          }
+        }
+      ],
+      "transitions": [],
+      "overlays": [],
+      "audio": {
+        "voice": {
+          "targetLufs": -14,
+          "denoise": false
+        },
+        "sfx": []
+      }
+    },
+    "screens": [
+      {
+        "clip": "c1",
+        "color": "#00ca00",
+        "background": "#26334a",
+        "centers": [
+          {
+            "at": 0,
+            "x": 0.20719696969696969,
+            "y": 0.5036931818181818
+          },
+          {
+            "at": 0.25,
+            "x": 0.20946969696969697,
+            "y": 0.5036931818181818
+          },
+          {
+            "at": 0.5,
+            "x": 0.24886363636363637,
+            "y": 0.5036931818181818
+          },
+          {
+            "at": 0.75,
+            "x": 0.2708333333333333,
+            "y": 0.5
+          },
+          {
+            "at": 1,
+            "x": 0.290530303030303,
+            "y": 0.5036931818181818
+          },
+          {
+            "at": 1.25,
+            "x": 0.3125,
+            "y": 0.5
+          },
+          {
+            "at": 1.5,
+            "x": 0.3321969696969697,
+            "y": 0.5036931818181818
+          },
+          {
+            "at": 1.75,
+            "x": 0.334469696969697,
+            "y": 0.5036931818181818
+          },
+          {
+            "at": 2,
+            "x": 0.37386363636363634,
+            "y": 0.5036931818181818
+          },
+          {
+            "at": 2.25,
+            "x": 0.3958333333333333,
+            "y": 0.5
+          },
+          {
+            "at": 2.5,
+            "x": 0.415530303030303,
+            "y": 0.5036931818181818
+          },
+          {
+            "at": 2.75,
+            "x": 0.4375,
+            "y": 0.5
+          },
+          {
+            "at": 3,
+            "x": 0.4571969696969697,
+            "y": 0.5036931818181818
+          },
+          {
+            "at": 3.25,
+            "x": 0.4791666666666667,
+            "y": 0.5
+          },
+          {
+            "at": 3.5,
+            "x": 0.49886363636363634,
+            "y": 0.5036931818181818
+          },
+          {
+            "at": 3.75,
+            "x": 0.5208333333333334,
+            "y": 0.5
+          },
+          {
+            "at": 4,
+            "x": 0.5416666666666666,
+            "y": 0.5075231481481481
+          },
+          {
+            "at": 4.25,
+            "x": 0.5625,
+            "y": 0.5
+          },
+          {
+            "at": 4.5,
+            "x": 0.5821969696969697,
+            "y": 0.5036931818181818
+          },
+          {
+            "at": 4.75,
+            "x": 0.6041666666666666,
+            "y": 0.5
+          },
+          {
+            "at": 5,
+            "x": 0.6238636363636364,
+            "y": 0.5036931818181818
+          },
+          {
+            "at": 5.25,
+            "x": 0.6458333333333334,
+            "y": 0.5
+          },
+          {
+            "at": 5.5,
+            "x": 0.6666666666666666,
+            "y": 0.5075231481481481
+          },
+          {
+            "at": 5.75,
+            "x": 0.6875,
+            "y": 0.5
+          }
+        ],
+        "confidence": 1
+      }
+    ],
+    "semanticObservations": [],
+    "referenceStyle": "cinematic",
+    "quality": [
+      {
+        "iteration": 0,
+        "adjustment": {
+          "brightness": 0,
+          "gainDb": 0
+        },
+        "report": {
+          "status": "pass",
+          "checks": [
+            {
+              "id": "frame-size",
+              "status": "pass",
+              "basis": "Probed 360×640 pixels. Planned 360×640."
+            },
+            {
+              "id": "frame-rate",
+              "status": "pass",
+              "basis": "Probed video rate 30.0003 fps. Planned 30 fps."
+            },
+            {
+              "id": "frame-count",
+              "status": "pass",
+              "basis": "Counted 180 output frames. The planned timeline has 180."
+            },
+            {
+              "id": "duration",
+              "status": "pass",
+              "basis": "Probed video duration 6 s. Planned 6 s with a one-frame tolerance."
+            },
+            {
+              "id": "picture-level",
+              "status": "unmeasured",
+              "basis": "Comparison requires measured output luma and a comparable target in the same color range."
+            },
+            {
+              "id": "cut-cadence",
+              "status": "unmeasured",
+              "basis": "Comparison requires a measured reference cadence and observed cuts in the output."
+            },
+            {
+              "id": "true-peak",
+              "status": "unmeasured",
+              "basis": "No oversampled true-peak measurement was supplied."
+            },
+            {
+              "id": "sample-clipping",
+              "status": "pass",
+              "basis": "Decoded full-scale scan counted 0 samples in 0 intervals."
+            },
+            {
+              "id": "caption-presence",
+              "status": "unmeasured",
+              "basis": "Rendered-picture text detections and authored expected cues are both needed."
+            },
+            {
+              "id": "caption-timing",
+              "status": "pass",
+              "basis": "Checked 0 authored cues. Rendered observations with independently measured cue boundaries: 0."
+            },
+            {
+              "id": "caption-layout",
+              "status": "unmeasured",
+              "basis": "Rendered text bounds unavailable. Authored boxes checked: 0."
+            },
+            {
+              "id": "caption-contrast",
+              "status": "unmeasured",
+              "basis": "No local foreground/background contrast measurements were supplied."
+            }
+          ],
+          "issues": [],
+          "metrics": {
+            "lumaDelta": null,
+            "medianShotSeconds": 5.99994,
+            "peakExcessDb": null,
+            "clippedSamples": 0
+          },
+          "omittedIssueCount": 0
+        }
+      }
+    ]
+  }
+}

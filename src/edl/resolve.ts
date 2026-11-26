@@ -1,3 +1,4 @@
+import { FPS, toFrame } from "./time";
 import { brands as defaultBrands, type BrandKit } from "../brand";
 import type { Analysis, Probe } from "../pipeline/schemas";
 import { captionStyles as defaultStyles, type CaptionStyle } from "../remotion/captions/styles";
@@ -19,7 +20,7 @@ import { safeArea, zoneArea } from "./zones";
  * it. Word times come from analysis.words (bounds re-aligned on the audio energy).
  */
 
-export const FPS = 30;
+export { FPS, toFrame } from "./time";
 export const WIDTH = 1080;
 export const HEIGHT = 1920;
 
@@ -66,9 +67,7 @@ export interface KeptWord {
   end: number;
 }
 
-export function toFrame(seconds: number): number {
-  return Math.round(seconds * FPS);
-}
+
 
 interface SegmentTiming {
   fromFrame: number;

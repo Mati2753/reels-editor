@@ -1,3 +1,4 @@
+import { MIN_DURATION, MAX_DURATION } from "./time";
 import { MUSIC_FILES, SFX_FILES } from "../render/sounds";
 import type { z } from "zod";
 import { overlays as overlayRegistry, type OverlayRegistry } from "../remotion/overlays";
@@ -13,8 +14,7 @@ import { inside, intersects, safeArea } from "./zones";
  * validation"). Errors block preview and render; warnings do not.
  */
 
-export const MIN_DURATION = 5;
-export const MAX_DURATION = 90;
+export { MIN_DURATION, MAX_DURATION } from "./time";
 
 /** Longest transition accepted, seconds. */
 export const MAX_TRANSITION = 1;

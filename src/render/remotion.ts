@@ -26,7 +26,7 @@ export const chromiumOptions: ChromiumOptions = {};
 
 /** Work folder of the renderer: projects/<slug>/work/render/. */
 export function renderDir(paths: ProjectPaths): string {
-  return path.join(paths.work, "render");
+  return paths.renderWorkspace ?? path.join(paths.work, "render");
 }
 
 /**
@@ -40,7 +40,7 @@ async function preparePublicDir(paths: ProjectPaths, probe: Probe): Promise<stri
   await rm(dir, { recursive: true, force: true });
   await mkdir(path.join(dir, MEDIA_DIR), { recursive: true });
   const folders = new Set(probe.clips.map((c) => path.dirname(c.normalized.video)));
-  for (const f of folders) await symlink(path.join(paths.work, f), path.join(dir, MEDIA_DIR, f), "dir");
+  for (const f of folders) await symlink(path.join(paths.work, f), path.join(dir, MEDIA_DIR, f), process.platform === "win32" ? "junction" : "dir");
   return dir;
 }
 

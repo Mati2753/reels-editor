@@ -1,5 +1,5 @@
 import type { Transcript, Word } from "../pipeline/schemas";
-import { ms } from "../pipeline/project";
+import { ms } from "../edl/time";
 
 /** SRT times belong to cues. Distribute words within each cue for the word-level EDL. */
 export function importSrt(text: string, duration: number): Transcript {

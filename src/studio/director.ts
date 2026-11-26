@@ -1,8 +1,6 @@
-import { FPS, toFrame } from "../edl/resolve";
-import { MAX_DURATION, MIN_DURATION } from "../edl/validate";
+import { FPS, toFrame, MAX_DURATION, MIN_DURATION, ms } from "../edl/time";
 import type { ClipSegment, Edl } from "../edl/schema";
 import type { Analysis, Probe, TimedWord } from "../pipeline/schemas";
-import { ms } from "../pipeline/project";
 import { subtract, type Interval } from "../pipeline/analysis/intervals";
 import type { Format } from "./formats";
 
@@ -69,11 +67,18 @@ export function findBeats(probe: Probe, facts: Analysis, format: Format, setting
     const shots = facts.shots.filter((s) => s.clip === clip.id);
     const sentences = facts.sentences.filter((s) => s.clip === clip.id);
     const levels = facts.loudness.find((l) => l.clip === clip.id)?.rms;
+    const profiles = format.profile?.references.filter((r) => r.cadenceSections) ?? [];
+    const sectionCadence = [0, 1, 2].map((section) => {
+      const ratios = profiles.map((r) => r.cadenceSections![section]! / r.cadence).sort((a, b) => a - b);
+      return (
+        format.shotSeconds * (ratios.length ? Math.max(0.65, Math.min(1.5, ratios[Math.floor(ratios.length / 2)]!)) : 1)
+      );
+    });
     for (const { start, end } of spans) {
       let cursor = start;
       while (cursor + 0.015 < end) {
         let next = end;
-        const cadence = format.shotSeconds;
+        const cadence = sectionCadence[Math.min(2, Math.floor((3 * cursor) / length))]!;
         if (settings.cuts && end - cursor > cadence * 1.35) {
           const ideal = cursor + cadence;
           const lo = cursor + cadence * 0.58;
@@ -203,8 +208,13 @@ export function buildEdit(
   }
   if (total < MIN_DURATION - 0.01)
     throw new Error("The selected material is under five seconds. Choose longer footage or a longer cut.");
+  const transforms = format.profile?.references.flatMap((r) => (r.pictureTransform ? [r.pictureTransform] : [])) ?? [];
+  const pullBack =
+    transforms.length > 0 && transforms.filter((t) => t.direction === "out").length > transforms.length / 2;
   const segments: ClipSegment[] = selected.map((b, i) => {
-    const scale = settings.motion && i % 2 === 1 ? 1 + format.zoom : 1;
+    const emphasized = strength(b.text) >= 1.5;
+    const scale = settings.motion && emphasized ? 1 + format.zoom : 1;
+    const move = settings.motion && (emphasized || b.shot || (!b.text && b.end - b.start > 3));
     return {
       id: `s${i + 1}`,
       type: "clip",
@@ -212,9 +222,11 @@ export function buildEdit(
       in: b.start,
       out: b.end,
       framing: {
-        scale,
+        scale: pullBack && move ? ms(scale + format.zoom * 0.55) : scale,
         origin: { x: 0.5, y: 0.5 },
-        ...(settings.motion ? { move: { toScale: ms(scale + format.zoom * 0.55), ease: "easeInOut" as const } } : {}),
+        ...(move
+          ? { move: { toScale: pullBack ? scale : ms(scale + format.zoom * 0.55), ease: "easeInOut" as const } }
+          : {}),
       },
     };
   });
@@ -228,10 +240,17 @@ export function buildEdit(
   segments.slice(1).forEach((seg, i) => {
     const prev = segments[i]!;
     const duration = { cut: 0, flash: 0.13, zoom: 0.2, fade: 0.36 }[format.transition];
-    if (settings.motion && duration > 0 && Math.min(seg.out - seg.in, prev.out - prev.in) > duration + 0.1) {
+    const beat = selected[i + 1]!;
+    const sceneChange = beat.shot || beat.clip !== selected[i]!.clip || Math.abs(beat.start - selected[i]!.end) > 0.25;
+    if (
+      settings.motion &&
+      sceneChange &&
+      duration > 0 &&
+      Math.min(seg.out - seg.in, prev.out - prev.in) > duration + 0.1
+    ) {
       transitions.push({ between: [prev.id, seg.id], type: format.transition, duration });
     }
-    if (accents && (selected[i + 1]!.shot || i % 2 === 0)) {
+    if (accents && (sceneChange || strength(beat.text) >= 2)) {
       sfx.push({
         file: format.transition === "fade" ? "sfx/sweep.wav" : "sfx/pulse.wav",
         at: { segment: seg.id },
@@ -239,7 +258,6 @@ export function buildEdit(
       });
     }
   });
-  if (accents && sfx.length === 0) sfx.push({ file: "sfx/pulse.wav", at: { segment: segments[0]!.id }, gainDb: -18 });
   const keptWords = facts.words.filter((w) =>
     selected.some((b) => b.clip === w.clip && (w.start + w.end) / 2 >= b.start && (w.start + w.end) / 2 < b.end),
   );
@@ -307,7 +325,7 @@ export function buildEdit(
     {
       title: "Motion",
       detail: settings.motion
-        ? `Opened with “${hook}”. Applied ${Math.round(format.zoom * 100)}% alternating punch-ins and ${transitions.length} visible transition${transitions.length === 1 ? "" : "s"}.`
+        ? `Opened with “${hook}”. Used movement at visual changes or spoken emphasis, with ${transitions.length} visible transition${transitions.length === 1 ? "" : "s"}.`
         : "Camera moves, graphic overlays and transitions are off.",
     },
     {

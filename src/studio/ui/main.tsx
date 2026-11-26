@@ -52,6 +52,7 @@ function App() {
   const [loading, setLoading] = useState(true);
   const current = useRef(sample.id);
   const srt = useRef<HTMLInputElement>(null);
+  const quickInput = useRef<HTMLInputElement>(null);
   const format = library.formats.find((f) => f.id === settings.format);
   const working = job?.state === "working" || pending;
   const draftKey = (id: string) => "cutroom.draft.v1." + id;
@@ -134,13 +135,24 @@ function App() {
     localStorage.setItem("cutroom.project", p.id);
     return p;
   }
-  async function generate() {
+  async function importProject(file: File) {
+    const p = await api<Project>("/api/projects", {
+      method: "POST",
+      headers: { "Content-Type": "application/octet-stream", "X-Filename": encodeURIComponent(file.name) },
+      body: file,
+    });
+    remember(p);
+    open(p, settings);
+    return p;
+  }
+  async function generate(file?: File) {
     if (working) return;
     setPending(true);
     setNotice("");
     setError("");
     try {
-      const p = await realProject();
+      if (file) setNotice("Preparing your footage…");
+      const p = file ? await importProject(file) : await realProject();
       const result = await api<{ job: Job }>(`/api/projects/${p.id}/generate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -151,6 +163,7 @@ function App() {
       setError(message(e));
     } finally {
       setPending(false);
+      if (quickInput.current) quickInput.current.value = "";
     }
   }
   async function submit(file: File, label: string) {
@@ -166,9 +179,7 @@ function App() {
       setDialog(null);
       setNotice(`“${f.name}” is saved and selected.`);
     } else {
-      const p = await api<Project>("/api/projects", { method: "POST", headers, body: file });
-      remember(p);
-      open(p, settings);
+      await importProject(file);
     }
   }
   async function attachSrt(file?: File) {
@@ -279,9 +290,22 @@ function App() {
                 </div>
               </div>
               <div className="header-actions">
-                <button className="secondary" onClick={() => setDialog("upload")}>
-                  <Upload size={16} />
-                  Import footage
+                <input
+                  ref={quickInput}
+                  hidden
+                  type="file"
+                  accept="video/*,.mkv,.mts,.m4v"
+                  aria-label="Video to edit automatically"
+                  onChange={(e) => {
+                    const file = e.currentTarget.files?.[0];
+                    if (file) {
+                      setDismissed("");
+                      void generate(file);
+                    }
+                  }}
+                />
+                <button className="secondary" disabled={working || loading} onClick={() => quickInput.current?.click()}>
+                  <Upload size={16} /> Edit my video
                 </button>
                 {project.edit ? (
                   <a className="primary" href={media(project, project.edit.id + ".mp4") + "?download=1"} download>

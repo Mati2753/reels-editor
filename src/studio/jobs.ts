@@ -1,5 +1,8 @@
 import { copyFile, readFile, rename, rm } from "node:fs/promises";
 import path from "node:path";
+import { z } from "zod";
+import { FormatSchema } from "./format-model";
+import { SettingsSchema } from "./settings";
 import { randomUUID } from "node:crypto";
 import { ingest } from "../pipeline/ingest";
 import { transcribe, defaultTranscribeOptions } from "../pipeline/transcribe";
@@ -20,40 +23,72 @@ export const jobs = new Map<string, Job>();
 // Encode one project at a time on a local workstation. All queued jobs are visible
 // to polling clients, including a second tab opened while the current edit runs.
 let queue = Promise.resolve();
-export function startEdit(paths: ProjectPaths, format: Format, settings: Settings) {
+const IntentSchema = z.object({
+  version: z.literal(1),
+  id: z.string().regex(/^cut-[0-9a-f-]{36}$/),
+  previous: z.string().nullable(),
+  format: FormatSchema,
+  settings: SettingsSchema,
+  attempt: z.number().int().min(0).max(2),
+});
+type Intent = z.infer<typeof IntentSchema>;
+const jobFile = (paths: ProjectPaths) => path.join(paths.work, "studio-job.json");
+
+async function enqueue(paths: ProjectPaths, project: Project, intent: Intent) {
+  if (jobs.get(paths.slug)?.state === "working") return;
   jobs.set(paths.slug, { state: "working", step: "Queued for the director" });
+  try {
+    await writeJsonIfChanged(jobFile(paths), intent);
+  } catch (error) {
+    jobs.delete(paths.slug);
+    throw error;
+  }
   queue = queue
-    .then(async () => generate(paths, await readProject(paths), format, settings))
+    .then(() => generate(paths, project, intent))
     .catch((error) => {
       jobs.set(paths.slug, { state: "failed", step: String(error) });
     });
 }
-
+export async function startEdit(paths: ProjectPaths, project: Project, format: Format, settings: Settings) {
+  await enqueue(paths, project, {
+    version: 1,
+    id: "cut-" + randomUUID(),
+    previous: project.edit?.id ?? null,
+    format,
+    settings,
+    attempt: 0,
+  });
+}
 export async function projectJob(paths: ProjectPaths, project: Project): Promise<Job | null> {
   const live = jobs.get(paths.slug);
   if (live) return live;
+  let marker;
   try {
-    const marker = JSON.parse(await readFile(path.join(paths.work, "studio-job.json"), "utf8"));
-    if (marker.previous === (project.edit?.id ?? null))
-      return {
-        state: "failed",
-        step: marker.error ?? "The last edit was interrupted. Generate it again to resume from the cached analysis.",
-      };
+    marker = JSON.parse(await readFile(jobFile(paths), "utf8"));
   } catch {
-    /* A project with no pending edit has no marker. */
+    return null;
   }
-  return null;
+  if (marker.previous !== (project.edit?.id ?? null)) return null;
+  const saved = IntentSchema.safeParse(marker);
+  if (!marker.error && saved.success && saved.data.attempt < 2 && saved.data.settings.director === "local") {
+    await enqueue(paths, project, { ...saved.data, attempt: saved.data.attempt + 1 });
+    return jobs.get(paths.slug) ?? null;
+  }
+  return {
+    state: "failed",
+    step: marker.error ?? "The edit was interrupted. Generate it again to use the cached analysis.",
+  };
 }
 
 /** A published cut remains playable while its replacement is staged and validated. */
-export async function generate(paths: ProjectPaths, project: Project, format: Format, settings: Settings) {
+async function generate(paths: ProjectPaths, project: Project, intent: Intent) {
+  const { format, settings, id } = intent;
   const update = (step: string, progress?: number) => jobs.set(paths.slug, { state: "working", step, progress });
   const log = (s: string) => console.log(`[${paths.slug}] ${s}`);
   update("Preparing footage");
   const marker = path.join(paths.work, "studio-job.json");
-  const previous = project.edit?.id ?? null;
+
   try {
-    await writeJsonIfChanged(marker, { previous });
     await ingest(paths, log);
     const probe = await readJson(paths.probe, ProbeSchema, "Prepare the footage first.");
     update("Reading speech");
@@ -102,7 +137,7 @@ export async function generate(paths: ProjectPaths, project: Project, format: Fo
     const selection =
       settings.director === "claude" ? await claudeSelection(beats, format, settings) : localSelection(beats, settings);
     const { edl, decisions } = buildEdit(project.title, transcript.language, facts, beats, selection, format, settings);
-    const id = `cut-${randomUUID()}`;
+
     const target = edlTarget(paths, path.join(paths.work, "edits", `${id}.edl.json`));
     await writeJsonIfChanged(target.file, edl);
     const validated = await validateProject(paths, target);
@@ -153,7 +188,7 @@ export async function generate(paths: ProjectPaths, project: Project, format: Fo
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     log(message);
-    await writeJsonIfChanged(marker, { previous, error: message.slice(0, 850) });
+    await writeJsonIfChanged(marker, { ...intent, error: message.slice(0, 850) });
     jobs.set(paths.slug, { state: "failed", step: message.slice(0, 850) });
   }
 }
