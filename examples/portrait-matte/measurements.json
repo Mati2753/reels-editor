@@ -1,0 +1,289 @@
+[
+  {
+    "scene": "s1",
+    "clip": "c1",
+    "sourceIn": 0,
+    "sourceOut": 5.566666666666666,
+    "accepted": true,
+    "model": {
+      "model": "Xenova/modnet",
+      "revision": "fa2fa546052fba4c08921230a26cc69a333fca12",
+      "sha256": "07c308cf0fc7e6e8b2065a12ed7fc07e1de8febb7dc7839d7b7f15dd66584df9",
+      "size": 256,
+      "rate": 8
+    },
+    "processingMs": 15374,
+    "observations": [
+      {
+        "at": 0,
+        "foreground": 0.4791717529296875,
+        "background": 0.497314453125,
+        "faceAlpha": 1
+      },
+      {
+        "at": 0.125,
+        "foreground": 0.4863128662109375,
+        "background": 0.494873046875,
+        "faceAlpha": 1
+      },
+      {
+        "at": 0.25,
+        "foreground": 0.48602294921875,
+        "background": 0.494903564453125,
+        "faceAlpha": 1
+      },
+      {
+        "at": 0.375,
+        "foreground": 0.50640869140625,
+        "background": 0.4764862060546875,
+        "faceAlpha": 1
+      },
+      {
+        "at": 0.5,
+        "foreground": 0.50604248046875,
+        "background": 0.476806640625,
+        "faceAlpha": 1
+      },
+      {
+        "at": 0.625,
+        "foreground": 0.5049285888671875,
+        "background": 0.477447509765625,
+        "faceAlpha": 1
+      },
+      {
+        "at": 0.75,
+        "foreground": 0.5062713623046875,
+        "background": 0.4765472412109375,
+        "faceAlpha": 1
+      },
+      {
+        "at": 0.875,
+        "foreground": 0.5381927490234375,
+        "background": 0.4414215087890625,
+        "faceAlpha": 1
+      },
+      {
+        "at": 1,
+        "foreground": 0.53717041015625,
+        "background": 0.441802978515625,
+        "faceAlpha": 1
+      },
+      {
+        "at": 1.125,
+        "foreground": 0.5353851318359375,
+        "background": 0.4423065185546875,
+        "faceAlpha": 1
+      },
+      {
+        "at": 1.25,
+        "foreground": 0.5346832275390625,
+        "background": 0.4423675537109375,
+        "faceAlpha": null
+      },
+      {
+        "at": 1.375,
+        "foreground": 0.554412841796875,
+        "background": 0.43267822265625,
+        "faceAlpha": null
+      },
+      {
+        "at": 1.5,
+        "foreground": 0.5548553466796875,
+        "background": 0.43231201171875,
+        "faceAlpha": null
+      },
+      {
+        "at": 1.625,
+        "foreground": 0.5542755126953125,
+        "background": 0.43267822265625,
+        "faceAlpha": null
+      },
+      {
+        "at": 1.75,
+        "foreground": 0.5538787841796875,
+        "background": 0.432891845703125,
+        "faceAlpha": null
+      },
+      {
+        "at": 1.875,
+        "foreground": 0.55792236328125,
+        "background": 0.4295654296875,
+        "faceAlpha": null
+      },
+      {
+        "at": 2,
+        "foreground": 0.5580902099609375,
+        "background": 0.42950439453125,
+        "faceAlpha": null
+      },
+      {
+        "at": 2.125,
+        "foreground": 0.557403564453125,
+        "background": 0.4301605224609375,
+        "faceAlpha": null
+      },
+      {
+        "at": 2.25,
+        "foreground": 0.558258056640625,
+        "background": 0.4294281005859375,
+        "faceAlpha": 1
+      },
+      {
+        "at": 2.375,
+        "foreground": 0.5463714599609375,
+        "background": 0.4394378662109375,
+        "faceAlpha": 1
+      },
+      {
+        "at": 2.5,
+        "foreground": 0.5458984375,
+        "background": 0.4398040771484375,
+        "faceAlpha": 1
+      },
+      {
+        "at": 2.625,
+        "foreground": 0.5445556640625,
+        "background": 0.4407806396484375,
+        "faceAlpha": 1
+      },
+      {
+        "at": 2.75,
+        "foreground": 0.5460968017578125,
+        "background": 0.43963623046875,
+        "faceAlpha": 1
+      },
+      {
+        "at": 2.875,
+        "foreground": 0.5591888427734375,
+        "background": 0.4283294677734375,
+        "faceAlpha": 1
+      },
+      {
+        "at": 3,
+        "foreground": 0.5592498779296875,
+        "background": 0.42822265625,
+        "faceAlpha": 1
+      },
+      {
+        "at": 3.125,
+        "foreground": 0.55889892578125,
+        "background": 0.428619384765625,
+        "faceAlpha": 1
+      },
+      {
+        "at": 3.25,
+        "foreground": 0.5588226318359375,
+        "background": 0.4286346435546875,
+        "faceAlpha": 1
+      },
+      {
+        "at": 3.375,
+        "foreground": 0.5546722412109375,
+        "background": 0.43194580078125,
+        "faceAlpha": 1
+      },
+      {
+        "at": 3.5,
+        "foreground": 0.554718017578125,
+        "background": 0.431915283203125,
+        "faceAlpha": 1
+      },
+      {
+        "at": 3.625,
+        "foreground": 0.554962158203125,
+        "background": 0.43157958984375,
+        "faceAlpha": 1
+      },
+      {
+        "at": 3.75,
+        "foreground": 0.5545501708984375,
+        "background": 0.43182373046875,
+        "faceAlpha": 1
+      },
+      {
+        "at": 3.875,
+        "foreground": 0.554107666015625,
+        "background": 0.431671142578125,
+        "faceAlpha": 1
+      },
+      {
+        "at": 4,
+        "foreground": 0.5544281005859375,
+        "background": 0.4315643310546875,
+        "faceAlpha": 1
+      },
+      {
+        "at": 4.125,
+        "foreground": 0.5543365478515625,
+        "background": 0.4315643310546875,
+        "faceAlpha": 1
+      },
+      {
+        "at": 4.25,
+        "foreground": 0.5545806884765625,
+        "background": 0.4314117431640625,
+        "faceAlpha": null
+      },
+      {
+        "at": 4.375,
+        "foreground": 0.5423431396484375,
+        "background": 0.4390716552734375,
+        "faceAlpha": null
+      },
+      {
+        "at": 4.5,
+        "foreground": 0.5420989990234375,
+        "background": 0.4393310546875,
+        "faceAlpha": null
+      },
+      {
+        "at": 4.625,
+        "foreground": 0.544281005859375,
+        "background": 0.4381256103515625,
+        "faceAlpha": null
+      },
+      {
+        "at": 4.75,
+        "foreground": 0.544525146484375,
+        "background": 0.43798828125,
+        "faceAlpha": null
+      },
+      {
+        "at": 4.875,
+        "foreground": 0.55596923828125,
+        "background": 0.4312591552734375,
+        "faceAlpha": null
+      },
+      {
+        "at": 5,
+        "foreground": 0.5563201904296875,
+        "background": 0.4311676025390625,
+        "faceAlpha": null
+      },
+      {
+        "at": 5.125,
+        "foreground": 0.5560455322265625,
+        "background": 0.4312286376953125,
+        "faceAlpha": null
+      },
+      {
+        "at": 5.25,
+        "foreground": 0.5560150146484375,
+        "background": 0.4312286376953125,
+        "faceAlpha": 1
+      },
+      {
+        "at": 5.375,
+        "foreground": 0.5589599609375,
+        "background": 0.4305572509765625,
+        "faceAlpha": 1
+      },
+      {
+        "at": 5.5,
+        "foreground": 0.5588226318359375,
+        "background": 0.43060302734375,
+        "faceAlpha": null
+      }
+    ]
+  }
+]

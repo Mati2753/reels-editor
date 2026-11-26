@@ -1,6 +1,7 @@
 import { IllustrationInput, planIllustration } from "./illustration";
 import { GenerateBrollSchema, GenerationStatusSchema, generateBroll, generationStatus } from "./generation";
 import { DirectTimelineSchema, RenderTimelineSchema, directTimeline, renderTimeline } from "./edl-tools";
+import { PortraitToolInput, generatePortrait } from "./portrait-tool";
 import path from "node:path";
 import { projectFile, projectMedia, MediaOperationSchema } from "./project-media";
 import { recallFeedback, FeedbackSchema } from "./feedback";
@@ -40,6 +41,12 @@ serveStdio(() => {
       return { content: [{ type: "text" as const, text: JSON.stringify(result) }] };
     });
   }
+  tool(
+    "generate_portrait_mask",
+    "Estimate a portrait matte, export the grayscale mask and replace the background using a local CPU model.",
+    PortraitToolInput,
+    (d) => generatePortrait(root, d),
+  );
   tool(
     "direct_timeline",
     "Replace clips or set camera, text, graphics, transitions, captions and sound on a new edit decision list.",

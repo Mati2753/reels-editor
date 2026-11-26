@@ -80,7 +80,7 @@
                 ><label>Source start (seconds) <input id="trim-start" type="number" step="0.033333" min="0" /></label
                 ><label>Source end (seconds) <input id="trim-end" type="number" step="0.033333" min="0" /></label>
                 <button class="soft" id="trim">Apply trim</button
-                ><button class="link" id="cut-json">Download editable timeline</button
+                ><button class="link" id="mask-download" hidden>Download scene mask</button><button class="link" id="cut-json">Download editable timeline</button
                 ><button class="link" id="otio">Download OpenTimelineIO</button
                 ><button class="link" id="qa">Download quality report</button>
               </div>
@@ -149,6 +149,7 @@
                 >
                 <label class="option"><input type="checkbox" id="faces" checked /> Keep a clearly visible face in frame</label>
                 <label class="option"><input type="checkbox" id="screen" /> Replace a green or blue studio backdrop and follow the subject</label>
+                <label class="option"><input type="checkbox" id="portrait" /> Replace a person’s background</label>
                 <label class="option">Backdrop color <input type="color" id="background" value="#26334a" /></label>
                 <label class="option"
                   >Automatic quality revisions

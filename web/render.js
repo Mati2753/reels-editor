@@ -298,8 +298,29 @@ export async function render(core, run, edl, facts, sources, getAsset, progress,
     const pictureFilters = firstDraw < 0 ? filters : filters.slice(0, firstDraw);
     const titles = firstDraw < 0 ? [] : filters.slice(firstDraw);
     const command = ["-ss", time(s.in), "-threads", "1", "-i", source.input];
-    if (screen || showInsert) {
+    const portrait = options.portraits?.[s.id];
+    if (screen || showInsert || portrait) {
       let graph = "[0:v]" + pictureFilters.join(",");
+      if (portrait) {
+        command.push(
+          "-f",
+          "rawvideo",
+          "-pix_fmt",
+          "gray",
+          "-s",
+          portrait.size + "x" + portrait.size,
+          "-framerate",
+          String(portrait.rate),
+          "-i",
+          portrait.file,
+        );
+        const color = portrait.background.replace("#", "0x");
+        graph =
+          "[0:v]setpts=PTS-STARTPTS,split[subject][under];[under]drawbox=x=0:y=0:w=iw:h=ih:color=" +
+          color +
+          ":t=fill[back];[1:v][subject]scale2ref[alpha][basepic];[basepic][alpha]alphamerge[front];[back][front]overlay," +
+          pictureFilters.join(",");
+      }
       if (screen) {
         graph +=
           ",format=yuva444p,chromakey=" +
@@ -316,7 +337,9 @@ export async function render(core, run, edl, facts, sources, getAsset, progress,
         if (!core.FS.analyzePath(panel.file).exists) core.FS.writeFile(panel.file, await getAsset(panel.file));
         command.push("-loop", "1", "-framerate", "30", "-i", panel.file);
         graph +=
-          "[base];[1:v]scale=" +
+          "[base];[" +
+          (portrait ? 2 : 1) +
+          ":v]scale=" +
           width +
           ":" +
           height +
@@ -351,7 +374,7 @@ export async function render(core, run, edl, facts, sources, getAsset, progress,
     const sceneKey = await hashBytes(
       keyBytes.encode(
         JSON.stringify([
-          "video-v3",
+          "video-v4",
           source.digest,
           s.in,
           s.out,

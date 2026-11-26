@@ -7,6 +7,11 @@ const root = fileURLToPath(new URL("../", import.meta.url));
 const out = path.resolve(process.argv[2] || path.join(root, "dist/browser"));
 await mkdir(path.join(out, "assets"), { recursive: true });
 await cp(path.join(root, "assets/vision"), path.join(out, "assets/vision"), { recursive: true });
+const portrait = path.join(out, "assets/portrait");
+await cp(path.join(root, "assets/portrait"), portrait, { recursive: true });
+for (const name of ["ort.wasm.min.js", "ort-wasm-simd-threaded.mjs", "ort-wasm-simd-threaded.wasm"]) {
+  await cp(path.join(root, "node_modules/onnxruntime-web/dist", name), path.join(portrait, name));
+}
 const ocr = path.join(out, "assets/ocr");
 await mkdir(ocr, { recursive: true });
 for (const name of ["tesseract-core-lstm.wasm.js", "tesseract-core-simd-lstm.wasm.js", "LICENSE"]) {

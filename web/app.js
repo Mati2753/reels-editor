@@ -152,7 +152,9 @@ function settings() {
   return {
     ratio: $("ratio").value,
     quality: $("quality").value,
-    screen: $("screen").checked, faces: $("faces").checked,
+    screen: $("screen").checked,
+    portrait: $("portrait").checked,
+    faces: $("faces").checked,
     background: $("background").value,
     visual: $("visual").checked,
     broll: $("broll").checked,
@@ -288,6 +290,7 @@ function start(kind, files = null, revision = null) {
         sourceSeconds: r.sourceSeconds,
         seconds: r.seconds,
         scenes: r.scenes,
+        matteFiles: r.matteFiles ?? [],
         notes: r.notes,
       };
       if (file) supplied = "";
@@ -364,13 +367,16 @@ paint();
 
 function download(name, value) {
   const a = document.createElement("a");
-  a.href = URL.createObjectURL(new Blob([JSON.stringify(value, null, 2)], { type: "application/json" }));
+  a.href = URL.createObjectURL(
+    value instanceof Blob ? value : new Blob([JSON.stringify(value, null, 2)], { type: "application/json" }),
+  );
   a.download = name;
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 1500);
 }
 function setTrim() {
   const s = project.cut?.scenes.find((s) => s.id === $("scene").value);
+  $("mask-download").hidden = !project.matteFiles?.some((f) => f.scene === s?.id);
   if (s) {
     $("trim-start").value = (s.inFrame / 30).toFixed(3);
     $("trim-end").value = (s.outFrame / 30).toFixed(3);
@@ -458,3 +464,16 @@ $("clear-feedback").onclick = async () => {
   say(ok ? "Cleared the feedback for this style and footage type." : "Your browser could not clear the feedback.");
 };
 $("history").onclick = async () => download("director-history.json", (await readLocal("director-history")) ?? []);
+
+$("screen").onchange = () => {
+  if ($("screen").checked) $("portrait").checked = false;
+};
+$("portrait").onchange = () => {
+  if ($("portrait").checked) $("screen").checked = false;
+};
+
+$("mask-download").onclick = () => {
+  const matte = project.matteFiles?.find((f) => f.scene === $("scene").value);
+  if (matte)
+    download(project.title + "-" + matte.scene + "-source-mask.mp4", new Blob([matte.bytes], { type: "video/mp4" }));
+};

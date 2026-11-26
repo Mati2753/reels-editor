@@ -1,3 +1,4 @@
+import { portraitMattes, exportPortraitMasks } from "./portrait";
 import { comparePictures, transformSize } from "../src/intelligence/picture-transform";
 import { planIllustration } from "../src/intelligence/illustration";
 import { locateFaces } from "./faces";
@@ -547,12 +548,29 @@ self.onmessage = async ({ data }) => {
     const learnedFaceTarget = positions.length
       ? { x: median(positions.map((p) => p.x)), y: median(positions.map((p) => p.y)) }
       : { x: 0.5, y: 0.38 };
+    let portrait = { results: {}, observations: [] };
+    if (settings.portrait) {
+      progress("Loading the portrait background model", 0.41);
+      try {
+        portrait = await portraitMattes(core, run, edl, media, asset, settings.background, progress);
+        notes.push(
+          "Replaced the portrait background in " +
+            Object.keys(portrait.results).length +
+            " of " +
+            edl.segments.length +
+            " scenes. Uncertain scenes keep the original picture.",
+        );
+      } catch (e) {
+        notes.push("Portrait background processing was unavailable. " + String(e?.message ?? "").slice(0, 160));
+      }
+    }
     for (let i = 0; i <= limit; i++) {
       const priorRender = rendered,
         priorReport = report,
         priorAdjustment = iterations.at(-1)?.adjustment;
       rendered = await render(core, run, edl, facts, media, asset, progress, {
         dimensions,
+        portraits: portrait.results,
         faceTarget: learnedFaceTarget,
         grade: { ...grade, brightness: adjustment.brightness },
         gainDb: adjustment.gainDb,
@@ -656,6 +674,7 @@ self.onmessage = async ({ data }) => {
         effects: { segments: edl.segments, transitions: edl.transitions, overlays: edl.overlays, audio: edl.audio },
         faceTarget: learnedFaceTarget,
         faces: media.filter((m) => m.faces?.centers.length).map((m) => ({ clip: m.clip, ...m.faces })),
+        portraitMattes: portrait.observations,
         screens: media.filter((m) => m.screen).map((m) => ({ clip: m.clip, ...m.screen })),
         semanticObservations: media.flatMap((m) => m.semantic ?? []),
         referenceStyle: format.id,
@@ -687,18 +706,25 @@ self.onmessage = async ({ data }) => {
         report.checks.filter((c) => c.status === "pass").length +
         " delivery measurements on the exported MP4.",
     );
+    let matteFiles = [];
+    try {
+      matteFiles = exportPortraitMasks(core, run, edl, media, portrait.results);
+    } catch {
+      notes.push("The portrait cut is ready, but the separate mask video could not be exported.");
+    }
     self.postMessage(
       {
         result: {
           ...rendered,
           cut,
+          matteFiles,
           notes,
           report,
           iterations,
           sourceSeconds: media.reduce((n, m) => n + m.seconds, 0),
         },
       },
-      [rendered.bytes.buffer],
+      [rendered.bytes.buffer, ...matteFiles.map((f) => f.bytes.buffer)],
     );
   } catch (error) {
     self.postMessage({ error: error?.message || "This video could not be edited." });
