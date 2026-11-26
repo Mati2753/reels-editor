@@ -1,0 +1,454 @@
+{
+  "schema": "org.reelforge.cut",
+  "version": 1,
+  "revision": 1,
+  "title": "narration",
+  "output": {
+    "width": 640,
+    "height": 360,
+    "ratio": "16:9",
+    "rate": {
+      "numerator": 30,
+      "denominator": 1
+    }
+  },
+  "sources": [
+    {
+      "id": "c1",
+      "name": "narration.mp4",
+      "bytes": 28970,
+      "duration": 6,
+      "hasAudio": true
+    }
+  ],
+  "scenes": [
+    {
+      "id": "s1",
+      "clip": "c1",
+      "inFrame": 0,
+      "outFrame": 180
+    }
+  ],
+  "captions": [
+    {
+      "id": "cue-1",
+      "clip": "c1",
+      "sceneId": "s1",
+      "startFrame": 0,
+      "endFrame": 50,
+      "text": "Today we observed a"
+    },
+    {
+      "id": "cue-2",
+      "clip": "c1",
+      "sceneId": "s1",
+      "startFrame": 50,
+      "endFrame": 79,
+      "text": "solar flare."
+    }
+  ],
+  "metadata": {
+    "sourceDigests": [
+      "2f8f957724381ebc991b3c2c3c7c91895e00819c9d4ed65d91b30d714b3e6d81"
+    ],
+    "approvedLook": {
+      "zoom": 0.07,
+      "transition": "cut",
+      "stationary": true,
+      "captionWords": 4,
+      "captionStyle": {},
+      "musicDb": null,
+      "accent": null
+    },
+    "memory": {
+      "family": "cinematic",
+      "context": "speech",
+      "applied": [],
+      "editId": "dd2df117-0ac6-43ab-b2b5-4ce97a8e0531"
+    },
+    "settings": {
+      "ratio": "horizontal",
+      "quality": "draft",
+      "screen": false,
+      "portrait": false,
+      "faces": true,
+      "background": "#26334a",
+      "visual": false,
+      "broll": true,
+      "iterations": 0,
+      "format": "cinematic",
+      "target": 30,
+      "cuts": true,
+      "motion": false,
+      "captions": true,
+      "sound": false,
+      "director": "local",
+      "brief": "",
+      "captionStyle": {}
+    },
+    "decisions": [
+      {
+        "scene": "s1",
+        "clip": "c1",
+        "sourceIn": 0,
+        "sourceOut": 6,
+        "decision": "keep",
+        "basis": "Preserves a continuous spoken phrase",
+        "words": "Today we observed a solar flare.",
+        "framing": "Hold the framing",
+        "transition": "cut",
+        "score": 1,
+        "label": null,
+        "sequence": 1,
+        "status": "editorial inference"
+      }
+    ],
+    "grade": {
+      "brightness": 0,
+      "contrast": 1,
+      "saturation": 1,
+      "targetLuma": null,
+      "gainDb": 0
+    },
+    "broll": {
+      "assetId": "video-solar-flare",
+      "sourceURL": "https://images.nasa.gov/details/GSFC_20140404_SDO_m11517_Flare",
+      "credit": "NASA’s Goddard Space Flight Center and Solar Dynamics Observatory",
+      "file": "broll-solar-flare.mp4",
+      "start": 0,
+      "end": 2.5,
+      "matched": [
+        "solar flare"
+      ],
+      "reason": "The spoken phrase “Today we observed a solar flare.” names “solar flare”, visible in Solar flare observed by SDO.",
+      "score": 6
+    },
+    "illustration": null,
+    "effects": {
+      "segments": [
+        {
+          "id": "s1",
+          "type": "clip",
+          "clip": "c1",
+          "in": 0,
+          "out": 6,
+          "framing": {
+            "scale": 1,
+            "origin": {
+              "x": 0.5,
+              "y": 0.5
+            }
+          }
+        }
+      ],
+      "transitions": [],
+      "overlays": [],
+      "audio": {
+        "voice": {
+          "targetLufs": -14,
+          "denoise": false
+        },
+        "sfx": []
+      }
+    },
+    "faceTarget": {
+      "x": 0.5,
+      "y": 0.38
+    },
+    "faces": [],
+    "sourceSound": [
+      {
+        "clip": "c1",
+        "model": {
+          "model": "YAMNet",
+          "revision": "ac2ca3bd45d12ec1f19f1144205ea529b4e9dedf",
+          "sha256": "1510041dce24a2e9e84ec546807ac408ae496da6d1ed41bc3ccba649623f8e19",
+          "sampleRate": 16000,
+          "window": 15600,
+          "hop": 7680
+        },
+        "summary": {
+          "windows": 12,
+          "speechShare": 0.4166666666666667,
+          "musicShare": 0,
+          "silenceShare": 0.5833333333333334
+        },
+        "windows": [
+          {
+            "start": 0,
+            "end": 0.975,
+            "speech": 0.993,
+            "music": 0.0001,
+            "silence": 0.0002,
+            "labels": [
+              {
+                "name": "Speech",
+                "score": 0.993
+              }
+            ]
+          },
+          {
+            "start": 0.48,
+            "end": 1.455,
+            "speech": 0.9983,
+            "music": 0,
+            "silence": 0,
+            "labels": [
+              {
+                "name": "Speech",
+                "score": 0.9983
+              }
+            ]
+          },
+          {
+            "start": 0.96,
+            "end": 1.935,
+            "speech": 0.9891,
+            "music": 0,
+            "silence": 0.0003,
+            "labels": [
+              {
+                "name": "Speech",
+                "score": 0.9891
+              }
+            ]
+          },
+          {
+            "start": 1.44,
+            "end": 2.415,
+            "speech": 0.994,
+            "music": 0,
+            "silence": 0.0001,
+            "labels": [
+              {
+                "name": "Speech",
+                "score": 0.994
+              }
+            ]
+          },
+          {
+            "start": 1.92,
+            "end": 2.895,
+            "speech": 0.9907,
+            "music": 0.0001,
+            "silence": 0.0003,
+            "labels": [
+              {
+                "name": "Speech",
+                "score": 0.9907
+              }
+            ]
+          },
+          {
+            "start": 2.4,
+            "end": 3.375,
+            "speech": 0,
+            "music": 0,
+            "silence": 1,
+            "labels": [
+              {
+                "name": "Silence",
+                "score": 1
+              }
+            ]
+          },
+          {
+            "start": 2.88,
+            "end": 3.855,
+            "speech": 0,
+            "music": 0,
+            "silence": 1,
+            "labels": [
+              {
+                "name": "Silence",
+                "score": 1
+              }
+            ]
+          },
+          {
+            "start": 3.36,
+            "end": 4.335,
+            "speech": 0,
+            "music": 0,
+            "silence": 1,
+            "labels": [
+              {
+                "name": "Silence",
+                "score": 1
+              }
+            ]
+          },
+          {
+            "start": 3.84,
+            "end": 4.815,
+            "speech": 0,
+            "music": 0,
+            "silence": 1,
+            "labels": [
+              {
+                "name": "Silence",
+                "score": 1
+              }
+            ]
+          },
+          {
+            "start": 4.32,
+            "end": 5.295,
+            "speech": 0,
+            "music": 0,
+            "silence": 1,
+            "labels": [
+              {
+                "name": "Silence",
+                "score": 1
+              }
+            ]
+          },
+          {
+            "start": 4.8,
+            "end": 5.775,
+            "speech": 0,
+            "music": 0,
+            "silence": 1,
+            "labels": [
+              {
+                "name": "Silence",
+                "score": 1
+              }
+            ]
+          },
+          {
+            "start": 5.28,
+            "end": 6.016,
+            "speech": 0,
+            "music": 0,
+            "silence": 1,
+            "labels": [
+              {
+                "name": "Silence",
+                "score": 1
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "portraitMattes": [],
+    "screens": [],
+    "semanticObservations": [],
+    "referenceStyle": "cinematic",
+    "quality": [
+      {
+        "iteration": 0,
+        "adjustment": {
+          "brightness": 0,
+          "gainDb": 0
+        },
+        "captionStyle": {},
+        "report": {
+          "status": "review",
+          "checks": [
+            {
+              "id": "frame-size",
+              "status": "pass",
+              "basis": "Probed 640×360 pixels. Planned 640×360."
+            },
+            {
+              "id": "frame-rate",
+              "status": "pass",
+              "basis": "Probed video rate 30.0003 fps. Planned 30 fps."
+            },
+            {
+              "id": "frame-count",
+              "status": "pass",
+              "basis": "Counted 180 output frames. The planned timeline has 180."
+            },
+            {
+              "id": "duration",
+              "status": "pass",
+              "basis": "Probed video duration 6 s. Planned 6 s with a one-frame tolerance."
+            },
+            {
+              "id": "picture-level",
+              "status": "unmeasured",
+              "basis": "Comparison requires measured output luma and a comparable target in the same color range."
+            },
+            {
+              "id": "cut-cadence",
+              "status": "unmeasured",
+              "basis": "Comparison requires a measured reference cadence and observed cuts in the output."
+            },
+            {
+              "id": "true-peak",
+              "status": "pass",
+              "basis": "Measured true peak -7.6 dBTP, delivery ceiling -1 dBTP (0.1 dB tolerance)."
+            },
+            {
+              "id": "sample-clipping",
+              "status": "pass",
+              "basis": "Decoded full-scale scan counted 0 samples in 0 intervals."
+            },
+            {
+              "id": "caption-presence",
+              "status": "issue",
+              "basis": "Compared 2 of 2 authored cues with 1 rendered-picture detections."
+            },
+            {
+              "id": "caption-timing",
+              "status": "pass",
+              "basis": "Checked 2 authored cues. Rendered observations with independently measured cue boundaries: 0."
+            },
+            {
+              "id": "caption-layout",
+              "status": "pass",
+              "basis": "Compared 0 authored boxes and 1 observed boxes with their canvases."
+            },
+            {
+              "id": "caption-contrast",
+              "status": "issue",
+              "basis": "Checked local contrast for 1 caption observations."
+            }
+          ],
+          "issues": [
+            {
+              "code": "caption-presence",
+              "severity": "warning",
+              "start": 0,
+              "end": 1.667,
+              "confidence": 0.65,
+              "basis": "The picture detector reported no matching text during this authored cue.",
+              "fix": "Inspect the rendered frames and repair caption rendering or timing if the cue is missing."
+            },
+            {
+              "code": "caption-presence",
+              "severity": "warning",
+              "start": 1.667,
+              "end": 2.63,
+              "confidence": 0.65,
+              "basis": "The picture detector reported no matching text during this authored cue.",
+              "fix": "Inspect the rendered frames and repair caption rendering or timing if the cue is missing."
+            },
+            {
+              "code": "caption-contrast",
+              "severity": "warning",
+              "start": 2.1485,
+              "end": 2.181833,
+              "confidence": 0.65,
+              "basis": "Observed caption contrast ratio 1.46 was below the 3:1 large-text review threshold.",
+              "fix": "Adjust the outline, backplate or caption color and remeasure."
+            }
+          ],
+          "metrics": {
+            "lumaDelta": null,
+            "medianShotSeconds": 2.99997,
+            "peakExcessDb": 0,
+            "clippedSamples": 0
+          },
+          "omittedIssueCount": 0
+        },
+        "voiceReview": null,
+        "mixRepairs": []
+      }
+    ]
+  }
+}

@@ -95,8 +95,15 @@ const unsplash: License = {
   notice:
     "May be incorporated into an edit. The Unsplash License restricts selling substantially unmodified images or compiling a competing image service.",
 };
-const use = (engine: AssetEngine, parameters: string[], requires: string) => ({ engine, parameters, requires });
-const thumb = (filename: string) => ({ type: "image" as const, path: "assets/library/" + filename });
+const use = (engine: AssetEngine, parameters: string[], requires: string) => ({
+  engine,
+  parameters,
+  requires,
+});
+const thumb = (filename: string) => ({
+  type: "image" as const,
+  path: "assets/library/" + filename,
+});
 
 const photos = [
   {
@@ -120,7 +127,10 @@ const photos = [
           "sommets enneigés",
         ],
       },
-      { label: "alpine valley", terms: ["alpine valley", "mountain valley", "vallée alpine", "vallée de montagne"] },
+      {
+        label: "alpine valley",
+        terms: ["alpine valley", "mountain valley", "vallée alpine", "vallée de montagne"],
+      },
     ],
     exclusions: [
       "mountain of",
@@ -161,8 +171,14 @@ const photos = [
           "forêt de pins",
         ],
       },
-      { label: "deer", terms: ["deer", "deer grazing", "cerf", "cerfs", "chevreuil", "biche"] },
-      { label: "meadow", terms: ["mountain meadow", "forest meadow", "prairie de montagne"] },
+      {
+        label: "deer",
+        terms: ["deer", "deer grazing", "cerf", "cerfs", "chevreuil", "biche"],
+      },
+      {
+        label: "meadow",
+        terms: ["mountain meadow", "forest meadow", "prairie de montagne"],
+      },
     ],
     exclusions: [
       "random forest",
@@ -192,7 +208,10 @@ const photos = [
         label: "lake",
         terms: ["lake", "lakes", "lakeside", "lakeshore", "lakeside cabin", "lac", "lacs", "bord du lac"],
       },
-      { label: "boathouse", terms: ["boathouse", "boat house", "jetty", "hangar à bateaux", "ponton"] },
+      {
+        label: "boathouse",
+        terms: ["boathouse", "boat house", "jetty", "hangar à bateaux", "ponton"],
+      },
     ],
     exclusions: [
       "data lake",
@@ -230,6 +249,118 @@ const entries: AssetInput[] = photos.map((p) => ({
     use("ffmpeg", ["scale", "crop", "overlay"], "JPEG decoder and overlay filter"),
   ],
 }));
+
+entries.push({
+  id: "video-solar-flare",
+  name: "Solar flare observed by SDO",
+  kind: "stock-video",
+  description: "A moving close-up of the April 2, 2014 solar flare recorded in extreme ultraviolet.",
+  tags: ["astronomy", "solar activity", "space weather", "science", "solar flare", "éruption solaire"],
+  subjects: [
+    {
+      label: "solar flare",
+      terms: ["solar flare", "solar flares", "éruption solaire", "éruptions solaires"],
+    },
+  ],
+  exclusions: ["lens flare", "like a solar flare"],
+  resource: "assets/library/broll-solar-flare.mp4",
+  preview: { type: "video", path: "assets/library/broll-solar-flare.mp4" },
+  origin: "NASA’s Goddard Space Flight Center and Solar Dynamics Observatory",
+  sourceURL: "https://images.nasa.gov/details/GSFC_20140404_SDO_m11517_Flare",
+  license: {
+    id: "NASA-Media-Guidelines",
+    permission: "licensed-media",
+    terms: "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+    notice: "Credit NASA/SDO. Scientific imagery only. NASA endorsement and use of marks are restricted.",
+  },
+  width: 640,
+  height: 360,
+  seconds: 4,
+  implementations: [
+    use("browser", ["start", "end", "crop"], "Time-aligned silent H.264 clip placed over the original picture"),
+    use("ffmpeg", ["scale", "crop", "overlay"], "H.264 decoder and overlay filter"),
+  ],
+});
+
+for (const kind of ["fade", "pop", "scale", "slide"] as const) {
+  entries.push({
+    id: "animation-" + kind,
+    name: kind + " entrance and exit",
+    kind: "animation",
+    description: "Frame-resolved " + kind + " motion for the entrance or exit of a title or graphic.",
+    tags: [kind, "entrance", "exit", "animation", "overlay"],
+    resource: "src/remotion/overlays/motion.ts",
+    selector: kind,
+    preview: thumb("preview-motion-" + kind + ".webp"),
+    license: project,
+    origin: "Cutroom overlay motion library",
+    implementations: [
+      use("remotion", kind === "slide" ? ["duration", "direction"] : ["duration"], "EDL overlay enter or exit motion"),
+    ],
+  });
+}
+
+const production = [
+  [
+    "lut-amber",
+    "Amber print",
+    "lut",
+    "amber.cube",
+    "amber.webp",
+    "Subtle warm midtones and muted saturation for an SDR image.",
+    ["warm", "color grading", "amber", "nostalgia"],
+  ],
+  [
+    "texture-paper",
+    "Paper grain",
+    "texture",
+    "paper.png",
+    "paper.png",
+    "A transparent layer of pale and dark grain for a tactile paper treatment.",
+    ["paper", "grain", "print", "tactile"],
+  ],
+  [
+    "object-crystal",
+    "Faceted crystal",
+    "3d-object",
+    "crystal.obj",
+    "crystal.webp",
+    "An editable octahedron mesh with a three-second transparent turntable rendition.",
+    ["crystal", "mineral", "octahedron", "geometry"],
+  ],
+  [
+    "overlay-glint",
+    "Star glint",
+    "vfx-overlay",
+    "glint.mov",
+    "glint.webp",
+    "A 1.5-second transparent four-point glint for a deliberate highlight.",
+    ["sparkle", "glint", "shine", "highlight"],
+  ],
+] as const;
+for (const [id, name, kind, resource, preview, description, tags] of production) {
+  entries.push({
+    id,
+    name,
+    kind,
+    description,
+    tags: [...tags],
+    resource: "assets/production/" + resource,
+    preview: { type: "image", path: "assets/production/" + preview },
+    origin: "Original Cutroom production assets",
+    license: {
+      ...cc0,
+      notice: "Original artwork dedicated to the public domain in assets/LICENSES.md.",
+    },
+    implementations: [
+      use(
+        "ffmpeg",
+        ["start", "end"],
+        "Native process_project_media with operation apply-library-asset and this asset ID",
+      ),
+    ],
+  });
+}
 
 const sounds = [
   {
@@ -309,7 +440,14 @@ const fonts = [
     usage: "body",
     engines: ["remotion", "ffmpeg"],
   },
-  { id: "dm-sans", name: "DM Sans", path: "studio/dm-sans.woff2", weight: 0, usage: "interface", engines: ["browser"] },
+  {
+    id: "dm-sans",
+    name: "DM Sans",
+    path: "studio/dm-sans.woff2",
+    weight: 0,
+    usage: "interface",
+    engines: ["browser"],
+  },
 ] as const;
 for (const f of fonts) {
   const path = "assets/" + f.path;
@@ -583,12 +721,18 @@ export function searchAssets(
 }
 
 const phraseSchema = z
-  .object({ text: z.string().max(5000), start: z.number().nonnegative(), end: z.number().positive() })
+  .object({
+    text: z.string().max(5000),
+    start: z.number().nonnegative(),
+    end: z.number().positive(),
+  })
   .refine((p) => p.end > p.start, "Phrase end must follow its start.");
 export const BrollSelectionSchema = z
   .object({
     assetId: label,
-    file: z.string().regex(/^broll-[a-z0-9-]+\.jpg$/),
+    sourceURL: z.url().startsWith("https://").optional(),
+    credit: label.optional(),
+    file: z.string().regex(/^broll-[a-z0-9-]+\.(?:jpg|mp4)$/),
     start: z.number().nonnegative(),
     end: z.number().positive(),
     matched: z.array(label).nonempty(),
@@ -607,7 +751,12 @@ export function selectBroll(
     if (phrase.end - phrase.start < 0.75) continue;
     const words = tokens(phrase.text);
     const viable = assetRegistry
-      .filter((a) => a.kind === "stock-image" && !options.rejected?.includes(a.id) && compatible(a, options.engine ?? "browser"))
+      .filter(
+        (a) =>
+          (a.kind === "stock-image" || a.kind === "stock-video") &&
+          !options.rejected?.includes(a.id) &&
+          compatible(a, options.engine ?? "browser"),
+      )
       .map((asset) => ({ asset, matched: subjects(asset, words) }))
       .filter((m) => m.matched.length)
       .sort((a, b) => b.matched.length - a.matched.length);
@@ -616,6 +765,8 @@ export function selectBroll(
     if (!best || viable[1]?.matched.length === best.matched.length) continue;
     candidates.push({
       assetId: best.asset.id,
+      credit: best.asset.origin,
+      sourceURL: best.asset.sourceURL,
       file: best.asset.resource.split("/").at(-1)!,
       start: phrase.start,
       end: Math.min(phrase.end, phrase.start + 3),

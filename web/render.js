@@ -335,11 +335,14 @@ export async function render(core, run, edl, facts, sources, getAsset, progress,
       }
       if (showInsert) {
         if (!core.FS.analyzePath(panel.file).exists) core.FS.writeFile(panel.file, await getAsset(panel.file));
-        command.push("-loop", "1", "-framerate", "30", "-i", panel.file);
+        const moving = panel.file.endsWith(".mp4");
+        const localStart = Math.max(0, panel.start - cursor);
+        if (moving) command.push("-ss", time(Math.max(0, cursor - panel.start)), "-i", panel.file);
+        else command.push("-loop", "1", "-framerate", "30", "-i", panel.file);
         graph +=
           "[base];[" +
           (portrait ? 2 : 1) +
-          ":v]scale=" +
+          ":v]setpts=PTS-STARTPTS+" + time(localStart) + "/TB,scale=" +
           width +
           ":" +
           height +
@@ -515,13 +518,14 @@ export async function render(core, run, edl, facts, sources, getAsset, progress,
     );
     mix.push("[fx" + i + "]");
   }
+  // Leave AAC headroom and apply corrective master gain after the limiter.
   filters.push(
     mix.join("") +
       "amix=inputs=" +
       mix.length +
-      ":duration=first:normalize=0,volume=" +
+      ":duration=first:normalize=0,alimiter=limit=0.84:level=false,volume=" +
       options.gainDb +
-      "dB,alimiter=limit=0.97[mix]",
+      "dB[mix]",
   );
   run([
     ...inputs,

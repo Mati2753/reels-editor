@@ -17,3 +17,11 @@ A stress test deliberately raised an added bed to +20 dB. The first render flagg
 ## Compatibility and provenance
 
 The local CPU path uses ONNX Runtime WASM. The browser downloads the pinned model from the editor's own host and runs prediction on device. The native reference analyzer verifies the model checksum before creating the session. The 16,093,603-byte ONNX conversion uses Google YAMNet weights and the AudioSet ontology under Apache-2.0. The license and ordered labels ship alongside the model. Model revision and checksum are in the sound evidence module. [Upstream YAMNet](https://github.com/tensorflow/models/tree/master/research/audioset/yamnet) · [Pinned ONNX conversion](https://huggingface.co/zeropointnine/yamnet-onnx/tree/ac2ca3bd45d12ec1f19f1144205ea529b4e9dedf)
+
+## Delivery-channel verification
+
+The first stress test also exposed a measurement error. Counting peaks in a 16 kHz mono analysis track could report clipping introduced by stereo downmixing. The current browser checks the decoded output at its actual sample rate and preserves both channels. It uses a separate mono copy for speech recognition. The mixer reserves headroom before AAC encoding and applies corrective master gain after the limiter.
+
+Repeating the stress test found two intervals where the added bed covered the voice. One targeted revision removed both flags in the 11 comparable speech windows. Both new passes measured zero full-scale channel samples. The earlier 36 and nine issue counts above belong to the previous measurement method and cannot establish delivery-channel clipping. The current check is also tested with opposing left/right peaks that disappear in a mono mix.
+
+[Repaired mix](../examples/audio-direction/repaired-mix.mp4) · [Both sets of measurements](../examples/audio-direction/measurements.json)

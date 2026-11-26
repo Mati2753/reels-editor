@@ -100,7 +100,7 @@ serveStdio(() => {
   );
   tool(
     "process_project_media",
-    "Extract a PNG frame, trim, reframe or apply a project-owned .cube LUT to a new clip.",
+    "Extract a PNG frame, trim, reframe, grade with a project LUT, or apply a catalog LUT, texture, crystal or glint over a chosen interval.",
     z.object({ file: z.string().min(1), action: MediaOperationSchema }),
     (d) => projectMedia(root, d.file, d.action),
   );

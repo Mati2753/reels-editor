@@ -185,6 +185,16 @@
                 <button class="link" id="history">Download edit history</button>
               </div>
             </details>
+            <details id="asset-library">
+              <summary>Browse editing assets</summary>
+              <div class="options">
+                <label>Search assets <input type="search" id="asset-query" maxlength="1200" placeholder="Try solar flare or calm music" /></label>
+                <label>Category <select id="asset-kind"><option value="">All categories</option></select></label>
+                <span id="asset-count" role="status"></span>
+                <div id="asset-results"></div>
+                <button type="button" class="link" id="more-assets" hidden>Show more</button>
+              </div>
+            </details>
             <details id="examples-panel" hidden>
               <summary>Approved examples</summary>
               <div class="options">

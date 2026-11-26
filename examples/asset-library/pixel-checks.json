@@ -1,0 +1,23 @@
+{
+  "lut-amber": {
+    "during": 10.667,
+    "after": 1.0
+  },
+  "texture-paper": {
+    "during": 5.071,
+    "after": 0.0
+  },
+  "object-crystal": {
+    "during": 1.347,
+    "after": 0.002
+  },
+  "overlay-glint": {
+    "during": 0.174,
+    "after": 0.001
+  },
+  "solar-cut": {
+    "during": 107.137,
+    "after": 0.0,
+    "movingPictureDifference": 8.007
+  }
+}

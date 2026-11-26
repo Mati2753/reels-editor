@@ -481,3 +481,15 @@ summary {
     min-width: 145px;
   }
 }
+
+#asset-library input[type=search] {
+  width: 100%; background: var(--bg); color: var(--ink); border: 1px solid var(--edge);
+  border-radius: 6px; padding: .55rem; font: inherit;
+}
+#asset-results { display: grid; gap: .8rem; }
+#asset-results article { display: grid; gap: .35rem; border-top: 1px solid var(--edge); padding-top: .65rem; }
+#asset-results h4, #asset-results p { margin: 0; }
+#asset-results img, #asset-results video { width: 100%; max-height: 140px; object-fit: contain; background: var(--bg); }
+#asset-results audio { width: 100%; }
+#asset-results p, #asset-count { color: var(--muted); font-size: .85rem; }
+#asset-results a { color: var(--accent); font-size: .85rem; }

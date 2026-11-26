@@ -54,6 +54,9 @@ for (const file of [
 ]) {
   await cp(path.join(root, "assets", file), path.join(out, "assets", path.basename(file)));
 }
+for (const preview of ["amber.webp", "paper.png", "crystal.webp", "glint.webp"]) {
+  await cp(path.join(root, "assets/production", preview), path.join(out, "assets", preview));
+}
 await cp(path.join(root, "assets/library"), path.join(out, "assets"), { recursive: true });
 await cp(path.join(root, "node_modules/@ffmpeg/core/dist/umd/ffmpeg-core.js"), path.join(out, "ffmpeg-core.js"));
 // Each part is below the static host's single-asset limit. The editor loads these only on first use.

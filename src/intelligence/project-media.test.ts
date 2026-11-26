@@ -50,6 +50,24 @@ describe("native project media tools", () => {
     );
     expect((await projectMedia(root, "clip.mp4", { operation: "grade", lut: "identity.cube" })).width).toBe(96);
   });
+  it("renders the bundled LUT, texture, mesh rendition and transparent VFX with the native processor", async () => {
+    for (const assetId of ["lut-amber", "texture-paper", "object-crystal", "overlay-glint"] as const) {
+      const clip = await projectMedia(root, "clip.mp4", {
+        operation: "apply-library-asset",
+        assetId,
+        start: 0.15,
+        end: 0.75,
+      });
+      expect(clip).toMatchObject({ width: 96, codec: "h264" });
+    }
+    await expect(
+      projectMedia(root, "clip.mp4", {
+        operation: "apply-library-asset",
+        assetId: "lut-amber",
+        start: 2,
+      }),
+    ).rejects.toThrow(/range/);
+  }, 30000);
   it("rejects outside files and empty ranges", async () => {
     await expect(projectMedia(root, "../private", { operation: "frame", at: 0 })).rejects.toThrow(/inside/);
     await expect(projectMedia(root, "clip.mp4", { operation: "trim", start: 0.9, end: 0.2 })).rejects.toThrow(/range/);

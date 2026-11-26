@@ -1,11 +1,23 @@
 import path from "node:path";
 import { mkdir, mkdtemp, realpath, rm } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
+import { productionFiles } from "./production-assets";
 import { z } from "zod";
 import { run, ffprobeJson } from "../pipeline/util/exec";
 
 export const MediaOperationSchema = z.discriminatedUnion("operation", [
   z.object({ operation: z.literal("frame"), at: z.number().nonnegative() }),
-  z.object({ operation: z.literal("trim"), start: z.number().nonnegative(), end: z.number().positive() }),
+  z.object({
+    operation: z.literal("trim"),
+    start: z.number().nonnegative(),
+    end: z.number().positive(),
+  }),
+  z.object({
+    operation: z.literal("apply-library-asset"),
+    assetId: z.enum(["lut-amber", "texture-paper", "object-crystal", "overlay-glint"]),
+    start: z.number().nonnegative().default(0),
+    end: z.number().positive().optional(),
+  }),
   z.object({ operation: z.literal("grade"), lut: z.string().min(1) }),
   z.object({
     operation: z.literal("reframe"),
@@ -63,6 +75,34 @@ export async function projectMedia(root: string, name: string, op: z.input<typeo
         await copyFile(lut, path.join(dir, "grade.cube"));
         args.push("-vf", "lut3d=file=grade.cube");
       }
+      if (action.operation === "apply-library-asset") {
+        const end = action.end ?? duration;
+        if (end <= action.start || end > duration + 0.001) throw Error("Choose an asset range inside the source.");
+        const id = action.assetId;
+        const resource = fileURLToPath(new URL("../../assets/production/" + productionFiles[id], import.meta.url));
+        const enable = "enable='gte(t," + action.start + ")*lt(t," + end + ")'";
+        if (id === "lut-amber") {
+          const { copyFile } = await import("node:fs/promises");
+          await copyFile(resource, path.join(dir, "grade.cube"));
+          args.push("-vf", "lut3d=file=grade.cube:" + enable);
+        } else {
+          if (id === "texture-paper") args.push("-loop", "1", "-framerate", "30");
+          else args.push("-stream_loop", "-1");
+          args.push("-i", resource);
+          const size = id === "texture-paper" ? "w=iw:h=ih" : "w='min(iw,ih)*0.42':h=ow";
+          const graph =
+            "[1:v]setpts=PTS-STARTPTS+" +
+            action.start +
+            "/TB[placed];" +
+            "[placed][0:v]scale2ref=" +
+            size +
+            "[layer][base];[base][layer]overlay=" +
+            "x=(main_w-overlay_w)/2:y=(main_h-overlay_h)/2:shortest=1:" +
+            enable +
+            "[result]";
+          args.push("-filter_complex", graph, "-t", String(duration));
+        }
+      }
       if (action.operation === "reframe") {
         const { width: w, height: h, centerX: x, centerY: y } = action;
         args.push(
@@ -72,7 +112,7 @@ export async function projectMedia(root: string, name: string, op: z.input<typeo
       }
       args.push(
         "-map",
-        "0:v:0",
+        action.operation === "apply-library-asset" && action.assetId !== "lut-amber" ? "[result]" : "0:v:0",
         "-map",
         "0:a:0?",
         "-c:v",

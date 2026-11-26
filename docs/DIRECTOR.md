@@ -224,3 +224,5 @@ When captioned speech states one exact percentage of a whole, a generated bar ma
 ### Protéger le son du tournage
 
 Le directeur conserve la musique déjà présente lorsque les observations couvrent suffisamment les séquences retenues. Après le rendu, il compare la parole dans chaque plan avec les mêmes instants du rush. Une baisse persistante de la parole accompagnée d'une hausse de la musique justifie une atténuation localisée de la musique et des effets ajoutés. Le rapport conserve les passages encore problématiques. Un mix explicitement approuvé peut être repris pour la même famille de style et le même contexte de parole. [Mesures et exemples](AUDIO-DIRECTION.md)
+
+Le directeur peut insérer une vidéo de coupe lorsque la phrase identifie clairement son sujet. L’extrait du Solar Dynamics Observatory illustre les mentions littérales d’une éruption solaire. Le son du rush reste la source narrative. Le fichier de montage conserve la justification, le crédit et le lien de provenance. Une texture ou un effet de brillance du catalogue natif reste un choix explicite. [Exemples de rendu](PRODUCTION-ASSETS.md)

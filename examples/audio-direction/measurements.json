@@ -99,5 +99,42 @@
       ],
       "issueCount": 9
     }
+  ],
+  "deliveryRateStressTest": [
+    {
+      "pass": 0,
+      "clippedChannelSamples": 0,
+      "voiceReview": {
+        "checked": 11,
+        "intervals": [
+          {
+            "start": 0,
+            "end": 1.935,
+            "observations": 3,
+            "sourceSpeech": 0.9982,
+            "outputSpeech": 0.0028,
+            "outputMusic": 0.7881
+          },
+          {
+            "start": 3.36,
+            "end": 5.295,
+            "observations": 3,
+            "sourceSpeech": 0.9997,
+            "outputSpeech": 0.0069,
+            "outputMusic": 0.5527
+          }
+        ]
+      },
+      "issues": []
+    },
+    {
+      "pass": 1,
+      "clippedChannelSamples": 0,
+      "voiceReview": {
+        "checked": 11,
+        "intervals": []
+      },
+      "issues": []
+    }
   ]
 }

@@ -1,3 +1,4 @@
+import { scanDeliverySamples } from "../src/intelligence/output-audio";
 import { classifyAudio, closeAudioClassifier } from "./audio-events";
 import {
   summarizeSound,
@@ -140,28 +141,34 @@ async function inspectText(core, run, media, times) {
       )
     : [];
 }
-function fullScaleIntervals(samples) {
-  const spans = [];
-  if (!samples) return null;
-  let start = -1,
-    count = 0;
-  for (let i = 0; i <= samples.length; i++) {
-    if (i < samples.length && Math.abs(samples[i]) >= 1) {
-      if (start < 0) start = i;
-      count++;
-      continue;
-    }
-    if (start >= 0) {
-      const last = spans.at(-1);
-      if (last && start / 16000 - last.end < 0.05) {
-        last.end = i / 16000;
-        last.samples += count;
-      } else spans.push({ start: start / 16000, end: i / 16000, samples: count });
-      start = -1;
-      count = 0;
-    }
+function inspectDeliveryAudio(core, run, measured) {
+  const stream = measured.meta.streams.find((s) => s.codec_type === "audio");
+  if (!stream) return {};
+  const filename = "delivery.f32";
+  try {
+    run([
+      "-i",
+      "reel.mp4",
+      "-map",
+      "0:a:0",
+      "-vn",
+      "-t",
+      String(measured.duration),
+      "-c:a",
+      "pcm_f32le",
+      "-f",
+      "f32le",
+      filename,
+    ]);
+    const data = core.FS.readFile(filename);
+    return scanDeliverySamples(
+      new Float32Array(data.buffer, data.byteOffset, data.byteLength / 4),
+      stream.channels,
+      Number(stream.sample_rate),
+    );
+  } finally {
+    if (core.FS.analyzePath(filename).exists) core.FS.unlink(filename);
   }
-  return spans;
 }
 function timelinePhrases(edl, sentences) {
   let cursor = 0;
@@ -671,8 +678,7 @@ self.onmessage = async ({ data }) => {
           observedCaptions,
           captionSampleTimes,
           truePeakDbtp: measured.truePeakDbtp,
-          samplePeakDbfs: measured.evidence.audio?.samplePeakDbfs,
-          clipping: fullScaleIntervals(measured.raw),
+          ...inspectDeliveryAudio(core, run, measured),
         },
       });
       let voiceReview = null;
@@ -719,9 +725,14 @@ self.onmessage = async ({ data }) => {
               .filter((q) => ["caption-presence", "caption-contrast"].includes(q.code))
               .map((q) => ({ start: q.start, end: q.end }))
           : [];
-      const lowerMusic = i < limit && !mixRepairs.length ? (voiceReview?.intervals ?? []) : [];
+      const lowerMusic =
+        i < limit
+          ? (voiceReview?.intervals ?? []).filter(
+              (w) => !mixRepairs.some((applied) => applied.start <= w.start && applied.end >= w.end),
+            )
+          : [];
       if (!repair && !improve.length && !lowerMusic.length) break;
-      if (lowerMusic.length) mixRepairs = lowerMusic;
+      if (lowerMusic.length) mixRepairs = [...mixRepairs, ...lowerMusic];
       if (improve.length) settings.captionStyle = { ...settings.captionStyle, repairWindows: improve };
       previous = report.metrics;
       if (repair) adjustment = { brightness: repair.brightness, gainDb: repair.gainDb };
@@ -734,6 +745,16 @@ self.onmessage = async ({ data }) => {
           mixRepairs.map((w) => w.start.toFixed(1) + "–" + w.end.toFixed(1) + "s").join(", ") +
           " after comparing speech in the export with the source.",
       );
+    const accepted = iterations.filter((pass) => !pass.discarded).at(-1);
+    for (const interval of accepted?.voiceReview?.intervals ?? []) {
+      notes.push(
+        "Listen to the speech from " +
+          interval.start.toFixed(1) +
+          "–" +
+          interval.end.toFixed(1) +
+          "s. The finished mix may still cover the voice.",
+      );
+    }
     const metadata = JSON.parse(
       JSON.stringify({
         sourceDigests: signature,
@@ -784,7 +805,7 @@ self.onmessage = async ({ data }) => {
     notes.unshift(...decisions.map((d) => d.detail));
     for (const issue of report.issues)
       notes.push(issue.start.toFixed(1) + "–" + issue.end.toFixed(1) + "s · " + issue.basis);
-    if (broll) notes.push("B-roll: " + broll.reason);
+    if (broll) notes.push(broll.reason + " Footage credit — " + broll.credit + ".");
     notes.push(
       "Checked " +
         report.checks.filter((c) => c.status === "pass").length +

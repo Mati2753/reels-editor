@@ -44,3 +44,5 @@ The independent FFprobe check counted all 422 planned pictures in the square ren
 | Approved examples | A user can keep a camera, subtitle or mix treatment and replay the last three approved source/edit examples on the same device. Preference retrieval and playback after reload were exercised in Chromium. |
 
 [Sound direction and before/after validation](AUDIO-DIRECTION.md)
+
+All fifteen requested asset categories now contain resources and previews. The browser can insert moving NASA footage for a relevant spoken phrase. The native processor can apply a built-in LUT, texture, mesh rendition or VFX overlay over a specified interval. [Rendered examples and limits](PRODUCTION-ASSETS.md) · [Coverage of the original brief](BRIEF-COVERAGE.md)

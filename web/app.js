@@ -1,3 +1,4 @@
+import { setupLibrary } from "./library";
 import { readScreenText } from "./ocr";
 import { feedbackChoices, rememberFeedback } from "../src/intelligence/feedback";
 import { reviseStyle } from "../src/intelligence/styles";
@@ -553,3 +554,5 @@ $("forget-example").onclick = async () => {
   const id = $("approved-example").value;
   if (await updateLocal("approved-examples", (list) => (list ?? []).filter((e) => e.id !== id))) await loadExamples();
 };
+
+setupLibrary();

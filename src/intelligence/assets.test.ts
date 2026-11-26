@@ -5,6 +5,7 @@ import { overlays } from "../remotion/overlays";
 import { presentations } from "../remotion/transitions";
 import {
   AssetSchema,
+  AssetKindSchema,
   AssetSearchSchema,
   assetRegistry,
   BrollSelectionSchema,
@@ -18,6 +19,7 @@ const example = assetRegistry.find((a) => a.id === "photo-alpine")!;
 
 describe("licensed studio asset registry", () => {
   it("has a tracked resource and an actual preview for every entry", () => {
+    expect(new Set(assetRegistry.map((a) => a.kind))).toEqual(new Set(AssetKindSchema.options));
     for (const asset of assetRegistry) {
       expect(AssetSchema.safeParse(asset).success, asset.id).toBe(true);
       for (const path of [asset.resource, asset.preview.path]) {
@@ -68,7 +70,7 @@ describe("licensed studio asset registry", () => {
       "photo-alpine",
     );
   });
-  it("returns empty for missing categories, absent subjects and blank or spurious words", () => {
+  it("returns empty for unmatched categories, absent subjects and blank or spurious words", () => {
     for (const kind of ["lut", "texture", "3d-object", "stock-video", "vfx-overlay"] as const) {
       expect(searchAssets({ query: "landscape", kind })).toEqual([]);
     }
@@ -102,6 +104,19 @@ describe("grounded cutaway selection", () => {
     });
     expect(BrollSelectionSchema.safeParse(candidate).success).toBe(true);
     expect(candidate!.reason).toContain("We saw deer");
+  });
+  it("uses observatory footage only for a literal flare, with explicit provenance", () => {
+    expect(selectBroll([phrase("We measured a solar flare.")])).toMatchObject({
+      file: "broll-solar-flare.mp4",
+    });
+    expect(selectBroll([phrase("We never detected a solar flare.")])).toBeNull();
+    expect(
+      searchAssets({
+        query: "space weather",
+        kind: "stock-video",
+        licensedMediaOnly: true,
+      })[0]?.asset.origin,
+    ).toContain("NASA");
   });
   it("weights distinct visual subjects and breaks separate phrase ties by earliest output time", () => {
     const p1 = phrase("The forest is quiet.", 9, 11),

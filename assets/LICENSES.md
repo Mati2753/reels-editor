@@ -19,3 +19,7 @@ Browser face framing uses Nenad Markus’s MIT-licensed picojs implementation at
 Portrait matting bundles an Apache-2.0 MODNet ONNX conversion from the pinned Xenova/modnet revision documented in the validation report and the MIT-licensed ONNX Runtime Web engine. Corresponding notices are shipped alongside the model. The example NASA portrait of Eileen Collins is in the public domain. [Model and runtime provenance](../docs/PORTRAIT-MATTES.md)
 
 Audio event detection ships Google YAMNet, the AudioSet class map and the zeropointnine ONNX conversion. The model distribution declares Apache-2.0. Its license ships in `audio-model/LICENSE.txt`. [Source and revision](../docs/AUDIO-DIRECTION.md)
+
+The four-second silent solar cutaway uses NASA/SDO observations of the April 2, 2014 flare from *Graceful Eruption*, distributed by NASA’s Goddard Space Flight Center. The excerpt starts 16 seconds into the distributed video. The original audio is excluded. Credit NASA/SDO and observe the agency’s restrictions on endorsement, marks and third-party content. [Media record](https://images.nasa.gov/details/GSFC_20140404_SDO_m11517_Flare) · [NASA media guidelines](https://www.nasa.gov/nasa-brand-center/images-and-media/)
+
+The Amber print LUT, transparent paper grain, octahedron OBJ mesh, corresponding rendered turntable and star glint in `production/` are original project assets dedicated to the public domain under CC0-1.0. The warm-color preview uses the licensed lake photo above. [CC0](https://creativecommons.org/publicdomain/zero/1.0/)
