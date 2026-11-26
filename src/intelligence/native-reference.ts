@@ -1,3 +1,5 @@
+import { recognizeSound } from "./native-sound";
+import { summarizeSound, soundModel, type SoundWindow } from "./audio-events";
 import path from "node:path";
 import { tmpdir } from "node:os";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
@@ -69,6 +71,7 @@ export async function analyzeReferenceFile(file: string, id: string, name: strin
       { cwd: dir },
     );
     const visual = frameEvidence(await readFile(path.join(dir, "frames.txt"), "utf8"), duration, { keepFrames: true });
+    let soundWindows: SoundWindow[] | null = null;
     let audio = null,
       pauseShare: number | null = null,
       integratedLufs: number | null = null;
@@ -93,7 +96,9 @@ export async function analyzeReferenceFile(file: string, id: string, name: strin
         { cwd: dir },
       );
       const pcm = await readFile(path.join(dir, "audio.pcm"));
-      audio = audioEvidence(new Float32Array(pcm.buffer, pcm.byteOffset, Math.floor(pcm.byteLength / 4)), 16000);
+      const samples = new Float32Array(pcm.buffer, pcm.byteOffset, Math.floor(pcm.byteLength / 4));
+      audio = audioEvidence(samples, 16000);
+      if ((audio.rmsDbfs ?? -100) > -58) soundWindows = await recognizeSound(samples).catch(() => null);
       pauseShare = parseSilencedetect(log.stderr, duration).reduce((n, s) => n + s.end - s.start, 0) / duration;
       integratedLufs = integratedFromLog(log.stderr);
     }
@@ -141,7 +146,9 @@ export async function analyzeReferenceFile(file: string, id: string, name: strin
         ? median(visual.frames.flatMap((f) => (f.luma == null ? [] : [f.luma])))
         : null,
     );
+    reference.soundProfile = summarizeSound(soundWindows ?? []);
     return {
+      soundEvents: { model: soundModel, windows: soundWindows },
       format: makeStyle([reference], id, name, "/formats/" + id + "/poster.jpg"),
       evidence,
       frames: keepFrames ? visual.frames : undefined,

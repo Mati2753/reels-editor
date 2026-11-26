@@ -17,3 +17,5 @@ Browser OCR uses the Apache-2.0 Tesseract.js and Tesseract.js-core distributions
 Browser face framing uses Nenad Markus’s MIT-licensed picojs implementation at afffa50ec4134a47005f2cbf8112eaa69f65f37e and the official pico facefinder cascade at c2e81f9d23cc11d1a612fd21e4f9de0921a5d0d9. The MIT notice ships beside both files. [picojs](https://github.com/nenadmarkus/picojs) · [pico](https://github.com/nenadmarkus/pico)
 
 Portrait matting bundles an Apache-2.0 MODNet ONNX conversion from the pinned Xenova/modnet revision documented in the validation report and the MIT-licensed ONNX Runtime Web engine. Corresponding notices are shipped alongside the model. The example NASA portrait of Eileen Collins is in the public domain. [Model and runtime provenance](../docs/PORTRAIT-MATTES.md)
+
+Audio event detection ships Google YAMNet, the AudioSet class map and the zeropointnine ONNX conversion. The model distribution declares Apache-2.0. Its license ships in `audio-model/LICENSE.txt`. [Source and revision](../docs/AUDIO-DIRECTION.md)

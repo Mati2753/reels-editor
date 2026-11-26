@@ -1,3 +1,11 @@
+import { classifyAudio, closeAudioClassifier } from "./audio-events";
+import {
+  summarizeSound,
+  preservedMusic,
+  soundModel,
+  instrumentalOnly,
+  compareSpeechMix,
+} from "../src/intelligence/audio-events";
 import { portraitMattes, exportPortraitMasks } from "./portrait";
 import { comparePictures, transformSize } from "../src/intelligence/picture-transform";
 import { planIllustration } from "../src/intelligence/illustration";
@@ -282,7 +290,7 @@ self.onmessage = async ({ data }) => {
         (kind === "learn" ? "Measuring reference" : "Analyzing clip") + " " + (i + 1) + " of " + files.length,
         0.08 + (0.13 * i) / files.length,
       );
-      const m = inspect(core, run, input, clip, { keepFrames: kind === "learn", needSamples: kind !== "learn" });
+      const m = inspect(core, run, input, clip, { keepFrames: kind === "learn", needSamples: true });
       if (kind !== "learn" && settings.screen) {
         run([
           "-i",
@@ -318,6 +326,19 @@ self.onmessage = async ({ data }) => {
           }
         } catch {
           notes.push("Face framing was unavailable for " + file.name + ".");
+        }
+      }
+      if (m.raw && (m.evidence.audio?.rmsDbfs ?? -100) > -58) {
+        try {
+          const cacheKey = "audio-yamnet-v1:" + digest;
+          m.events = await readLocal(cacheKey);
+          if (!m.events) {
+            progress("Listening for speech, music and other sounds", 0.25);
+            m.events = await classifyAudio(m.raw, asset);
+            await saveLocal(cacheKey, m.events);
+          }
+        } catch {
+          notes.push("Sound classification was unavailable for " + file.name + ".");
         }
       }
       m.name = file.name;
@@ -365,6 +386,7 @@ self.onmessage = async ({ data }) => {
             confidence: median(transforms.map((v) => v.confidence)),
           };
         }
+        item.card.soundProfile = summarizeSound(m.events ?? []);
         const centers = m.faces?.centers ?? [];
         if (centers.length >= 3 && centers.length >= 0.7 * m.faces.frames)
           item.card.facePosition = { x: median(centers.map((p) => p.x)), y: median(centers.map((p) => p.y)) };
@@ -391,6 +413,8 @@ self.onmessage = async ({ data }) => {
           pictureTransforms: transforms,
           faces: m.faces,
           embeddedSubtitles: item.subtitleCues,
+          soundEvents: m.events ?? [],
+          soundModel,
           visibleText,
           semantics: m.semantic ?? [],
         });
@@ -415,6 +439,8 @@ self.onmessage = async ({ data }) => {
         if (supplied && i === 0) words = importSrt(supplied, m.seconds).words;
         else if (example && i === 0)
           words = JSON.parse(new TextDecoder().decode(await asset("sample-transcript.json"))).words;
+        else if (instrumentalOnly(m.events ?? []))
+          notes.push("Kept the instrumental audio in " + file.name + " without generating spoken subtitles.");
         else if (m.audio && (m.evidence.audio?.rmsDbfs ?? -100) > -55) {
           const key = "whisper-tiny-5332:" + digest;
           words = await readLocal(key);
@@ -438,6 +464,7 @@ self.onmessage = async ({ data }) => {
         media.push(m);
       }
     }
+    await closeAudioClassifier();
     if (kind === "learn") {
       const learned = makeStyle(refs, "ref-" + crypto.randomUUID(), title, image || "./assets/forest.jpg");
       self.postMessage({ format: learned, evidences, notes });
@@ -465,7 +492,7 @@ self.onmessage = async ({ data }) => {
         center: median(layouts.map((l) => l.center)),
         height: median(layouts.map((l) => l.height)),
       };
-    if (memory.position) settings.captionStyle = { ...settings.captionStyle, position: memory.position };
+    settings.captionStyle = { ...settings.captionStyle, ...memory.captionStyle };
     for (const rule of memory.rules) notes.push("Remembered for this style: " + feedbackChoices[rule.choice] + ".");
     const probe = {
       clips: media.map((m) => ({
@@ -501,6 +528,17 @@ self.onmessage = async ({ data }) => {
       settings,
     );
     const edl = data.revision ? fromRevision(data.revision, initial, bindings) : initial;
+    if (edl.audio.music && preservedMusic(edl.segments, media)) {
+      delete edl.audio.music;
+      const mix = decisions.find((d) => d.title === "Sound");
+      if (mix)
+        mix.detail =
+          "Kept the existing source music and omitted a second music bed. " +
+          edl.audio.sfx.length +
+          " planned sound accents.";
+    }
+    if (memory.accent === null) edl.audio.sfx = [];
+    else if (memory.accent) for (const fx of edl.audio.sfx) fx.file = memory.accent;
     if (memory.stationary) {
       for (const s of edl.segments) s.framing = { scale: 1, origin: { x: 0.5, y: 0.5 } };
       edl.transitions = edl.transitions.filter((t) => t.type !== "zoom");
@@ -564,6 +602,9 @@ self.onmessage = async ({ data }) => {
         notes.push("Portrait background processing was unavailable. " + String(e?.message ?? "").slice(0, 160));
       }
     }
+    let mixRepairs = [];
+    const inspectVoice =
+      Boolean(edl.audio.music || edl.audio.sfx.length) && media.some((m) => m.events?.some((w) => w.speech >= 0.8));
     for (let i = 0; i <= limit; i++) {
       const priorRender = rendered,
         priorReport = report,
@@ -571,6 +612,7 @@ self.onmessage = async ({ data }) => {
       rendered = await render(core, run, edl, facts, media, asset, progress, {
         dimensions,
         portraits: portrait.results,
+        mixRepairs,
         faceTarget: learnedFaceTarget,
         grade: { ...grade, brightness: adjustment.brightness },
         gainDb: adjustment.gainDb,
@@ -633,12 +675,33 @@ self.onmessage = async ({ data }) => {
           clipping: fullScaleIntervals(measured.raw),
         },
       });
-      iterations.push({ iteration: i, adjustment, captionStyle: settings.captionStyle, report });
-      if (priorReport && priorReport.issues.length < report.issues.length) {
+      let voiceReview = null;
+      if (inspectVoice && measured.raw) {
+        try {
+          voiceReview = compareSpeechMix(edl.segments, media, await classifyAudio(measured.raw, asset));
+        } catch {
+          /* Unknown if the encoded audio could not be classified. */
+        }
+      }
+      const priorVoice = iterations.at(-1)?.voiceReview;
+      iterations.push({
+        iteration: i,
+        adjustment,
+        captionStyle: settings.captionStyle,
+        report,
+        voiceReview,
+        mixRepairs,
+      });
+      if (
+        priorReport &&
+        (priorReport.issues.length < report.issues.length ||
+          (priorVoice && voiceReview && voiceReview.intervals.length > priorVoice.intervals.length))
+      ) {
         rendered = priorRender;
         report = priorReport;
         adjustment = priorAdjustment;
         settings.captionStyle = iterations.at(-2)?.captionStyle;
+        mixRepairs = iterations.at(-2)?.mixRepairs ?? [];
         iterations.at(-1).discarded = true;
         notes.push("Restored the earlier export because the revision introduced additional measured issues.");
         break;
@@ -656,15 +719,33 @@ self.onmessage = async ({ data }) => {
               .filter((q) => ["caption-presence", "caption-contrast"].includes(q.code))
               .map((q) => ({ start: q.start, end: q.end }))
           : [];
-      if (!repair && !improve.length) break;
+      const lowerMusic = i < limit && !mixRepairs.length ? (voiceReview?.intervals ?? []) : [];
+      if (!repair && !improve.length && !lowerMusic.length) break;
+      if (lowerMusic.length) mixRepairs = lowerMusic;
       if (improve.length) settings.captionStyle = { ...settings.captionStyle, repairWindows: improve };
       previous = report.metrics;
       if (repair) adjustment = { brightness: repair.brightness, gainDb: repair.gainDb };
       progress("Revising picture or sound from the measured result", 0.45);
     }
+    await closeAudioClassifier();
+    if (mixRepairs.length)
+      notes.push(
+        "Lowered added audio over " +
+          mixRepairs.map((w) => w.start.toFixed(1) + "–" + w.end.toFixed(1) + "s").join(", ") +
+          " after comparing speech in the export with the source.",
+      );
     const metadata = JSON.parse(
       JSON.stringify({
         sourceDigests: signature,
+        approvedLook: {
+          zoom: format.zoom,
+          transition: settings.motion ? format.transition : "cut",
+          stationary: !settings.motion || memory.stationary,
+          captionWords: edl.captions.maxWordsPerPage,
+          captionStyle: settings.captionStyle ?? {},
+          musicDb: edl.audio.music?.gainDb ?? null,
+          accent: edl.audio.sfx[0]?.file ?? null,
+        },
         memory: { family: memory.family, context: memory.context, applied: memory.rules, editId: crypto.randomUUID() },
         settings,
         decisions: reasons,
@@ -674,6 +755,9 @@ self.onmessage = async ({ data }) => {
         effects: { segments: edl.segments, transitions: edl.transitions, overlays: edl.overlays, audio: edl.audio },
         faceTarget: learnedFaceTarget,
         faces: media.filter((m) => m.faces?.centers.length).map((m) => ({ clip: m.clip, ...m.faces })),
+        sourceSound: media
+          .filter((m) => m.events)
+          .map((m) => ({ clip: m.clip, model: soundModel, summary: summarizeSound(m.events), windows: m.events })),
         portraitMattes: portrait.observations,
         screens: media.filter((m) => m.screen).map((m) => ({ clip: m.clip, ...m.screen })),
         semanticObservations: media.flatMap((m) => m.semantic ?? []),

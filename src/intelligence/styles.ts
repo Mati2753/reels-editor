@@ -80,6 +80,18 @@ export function makeStyle(sources: StyleSource[], id: string, name: string, imag
     center(refs.map((r) => r.lufs)),
     center(refs.map((r) => r.cueWords)),
   );
+  const audible = refs.filter((r) => r.hasAudio);
+  if (
+    audible.length &&
+    audible.every(
+      (r) =>
+        r.soundProfile &&
+        r.soundProfile.windows >= 4 &&
+        r.soundProfile.speechShare >= 0.65 &&
+        r.soundProfile.musicShare < 0.08,
+    )
+  )
+    format.musicDb = null;
   const shots = refs.reduce((n, r) => n + r.shots, 0);
   if (format.reference) format.reference.shots = shots;
   // A transition is a recommendation from the measured edit grammar. Neutral joins are the fallback.

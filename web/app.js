@@ -135,7 +135,11 @@ function paint() {
   $("feedback-panel").hidden = !memory;
   $("feedback-choice").replaceChildren(
     ...Object.entries(feedbackChoices)
-      .filter(([key]) => key !== "reject-insert" || project.cut?.metadata?.broll)
+      .filter(
+        ([key]) =>
+          (!key.startsWith("keep-") || !!project.cut?.metadata?.approvedLook) &&
+          (key !== "reject-insert" || project.cut?.metadata?.broll),
+      )
       .map(([key, label]) => new Option(label, key)),
   );
   $("timeline-tools").hidden = !project.cut;
@@ -441,17 +445,43 @@ function writeHistory(record) {
 $("remember-feedback").onclick = async () => {
   const meta = project.cut?.metadata;
   if (!meta?.memory) return;
+  const example = project;
   const entry = {
-    ...meta.memory,
+    family: meta.memory.family,
+    context: meta.memory.context,
+    editId: meta.memory.editId,
+    sample: meta.approvedLook,
     choice: $("feedback-choice").value,
     timestamp: new Date().toISOString(),
     asset: meta.broll?.assetId ?? null,
   };
   const ok = await updateLocal("director-feedback", (history) => rememberFeedback(history, entry));
-  if (ok) await writeHistory({ status: "feedback", ...entry });
+  let storedExample = true;
+  if (ok) {
+    await writeHistory({ status: "feedback", ...entry });
+    if (entry.choice.startsWith("keep-")) {
+      try {
+        const edited = await (await fetch(example.output)).blob();
+        const files = example.files?.length
+          ? example.files
+          : [new File([await (await fetch(example.source)).blob()], example.title + ".mp4", { type: "video/mp4" })];
+        storedExample = await updateLocal("approved-examples", (prior) =>
+          [
+            ...(prior ?? []).filter((v) => v.id !== entry.editId),
+            { id: entry.editId, title: example.title, files, edited, date: entry.timestamp },
+          ].slice(-3),
+        );
+        await loadExamples();
+      } catch {
+        storedExample = false;
+      }
+    }
+  }
   say(
     ok
-      ? "Saved. The director will use this feedback on similar videos in this style."
+      ? storedExample
+        ? "Saved. The director will use this feedback on similar videos in this style."
+        : "Feedback saved. There was too little storage to keep a video example."
       : "Your browser could not save the feedback.",
   );
 };
@@ -476,4 +506,50 @@ $("mask-download").onclick = () => {
   const matte = project.matteFiles?.find((f) => f.scene === $("scene").value);
   if (matte)
     download(project.title + "-" + matte.scene + "-source-mask.mp4", new Blob([matte.bytes], { type: "video/mp4" }));
+};
+
+let approvedExamples = [],
+  exampleUrl = null;
+async function loadExamples() {
+  approvedExamples = (await readLocal("approved-examples")) ?? [];
+  $("examples-panel").hidden = !approvedExamples.length;
+  $("approved-example").replaceChildren(
+    ...approvedExamples
+      .slice()
+      .reverse()
+      .map((e) => new Option(e.title + " · " + new Date(e.date).toLocaleDateString(), e.id)),
+  );
+  populateSources();
+}
+function populateSources() {
+  const e = approvedExamples.find((v) => v.id === $("approved-example").value);
+  $("example-source").replaceChildren(
+    new Option("Director’s cut", "edit"),
+    ...(e?.files ?? []).map((f, i) => new Option("Original · " + f.name, String(i))),
+  );
+  $("example-video").removeAttribute("src");
+  $("example-video").load();
+  $("example-video").hidden = true;
+  if (exampleUrl) URL.revokeObjectURL(exampleUrl);
+  exampleUrl = null;
+}
+$("approved-example").onchange = populateSources;
+$("watch-example").onclick = () => {
+  const e = approvedExamples.find((v) => v.id === $("approved-example").value);
+  if (!e) return;
+  const which = $("example-source").value,
+    file = which === "edit" ? e.edited : e.files[Number(which)];
+  if (exampleUrl) URL.revokeObjectURL(exampleUrl);
+  exampleUrl = URL.createObjectURL(file);
+  $("example-video").src = exampleUrl;
+  $("example-video").hidden = false;
+  $("example-video")
+    .play()
+    .catch(() => {});
+};
+loadExamples();
+
+$("forget-example").onclick = async () => {
+  const id = $("approved-example").value;
+  if (await updateLocal("approved-examples", (list) => (list ?? []).filter((e) => e.id !== id))) await loadExamples();
 };

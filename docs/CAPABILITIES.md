@@ -37,3 +37,10 @@ The independent FFprobe check counted all 422 planned pictures in the square ren
 [Feedback, caption learning and tracked-screen validation](DIRECTOR-VALIDATION.md)
 
 [Portrait matting, downloadable masks and verified composites](PORTRAIT-MATTES.md)
+
+| Additional capability | Verified scope |
+| --- | --- |
+| Audio recognition and revision | Browser and native reference analysis use local YAMNet acoustic tags. The browser preserves existing sustained music and can lower added sound over time ranges where a rendered mix masks speech. Human listening remains necessary. |
+| Approved examples | A user can keep a camera, subtitle or mix treatment and replay the last three approved source/edit examples on the same device. Preference retrieval and playback after reload were exercised in Chromium. |
+
+[Sound direction and before/after validation](AUDIO-DIRECTION.md)

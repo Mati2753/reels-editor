@@ -99,3 +99,24 @@ it("measures a stable colored caption fill and abstains on a uniform patch", () 
     }
   expect(estimateInk(p, width, height, box)).toBe("#f0c800");
 });
+
+it("remembers an explicitly approved mix and caption look and applies later corrections", () => {
+  const sample = {
+    zoom: 0.1,
+    transition: "fade",
+    stationary: false,
+    captionWords: 4,
+    captionStyle: { center: 0.64, uppercase: true },
+    musicDb: -22,
+    accent: "sfx/sweep.wav",
+  };
+  let history = rememberFeedback([], { ...entry, choice: "keep-mix", sample });
+  history = rememberFeedback(history, { ...entry, choice: "keep-captions", sample });
+  history = rememberFeedback(history, { ...entry, choice: "short-captions" });
+  const recalled = recallFeedback(history, original, true);
+  expect(recalled.format.musicDb).toBe(-22);
+  expect(recalled.accent).toBe("sfx/sweep.wav");
+  expect(recalled.format.captionWords).toBe(2);
+  expect(recalled.captionStyle.center).toBe(0.64);
+  expect(() => rememberFeedback([], { ...entry, choice: "keep-captions" })).toThrow();
+});

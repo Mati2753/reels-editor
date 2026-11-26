@@ -220,3 +220,7 @@ A viewer can give feedback from a rendered cut. Retrieve it for subsequent proje
 A browser edit can follow a single clearly detected frontal face. Within each retained scene, apply only a track with adequate temporal coverage and without competing strong detections or large jumps. Use the median single-face position from saved references as the composition target. Fall back to centered cropping when evidence is weak. Screen tracking takes precedence when the user requests backdrop replacement and the screen detector accepts the source.
 
 When captioned speech states one exact percentage of a whole, a generated bar may illustrate the quantity if no stock match was selected. Skip ambiguous, negative, comparative and out-of-range quantities. Global image scale fitting across reference shots can guide a pullback. Exclude hard cuts and pairs with too little improvement across the image.
+
+### Protéger le son du tournage
+
+Le directeur conserve la musique déjà présente lorsque les observations couvrent suffisamment les séquences retenues. Après le rendu, il compare la parole dans chaque plan avec les mêmes instants du rush. Une baisse persistante de la parole accompagnée d'une hausse de la musique justifie une atténuation localisée de la musique et des effets ajoutés. Le rapport conserve les passages encore problématiques. Un mix explicitement approuvé peut être repris pour la même famille de style et le même contexte de parole. [Mesures et exemples](AUDIO-DIRECTION.md)

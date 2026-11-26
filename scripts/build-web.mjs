@@ -7,6 +7,7 @@ const root = fileURLToPath(new URL("../", import.meta.url));
 const out = path.resolve(process.argv[2] || path.join(root, "dist/browser"));
 await mkdir(path.join(out, "assets"), { recursive: true });
 await cp(path.join(root, "assets/vision"), path.join(out, "assets/vision"), { recursive: true });
+await cp(path.join(root, "assets/audio-model"), path.join(out, "assets/audio-model"), { recursive: true });
 const portrait = path.join(out, "assets/portrait");
 await cp(path.join(root, "assets/portrait"), portrait, { recursive: true });
 for (const name of ["ort.wasm.min.js", "ort-wasm-simd-threaded.mjs", "ort-wasm-simd-threaded.wasm"]) {

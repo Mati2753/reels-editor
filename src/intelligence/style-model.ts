@@ -19,6 +19,9 @@ export const StyleSourceSchema = z.object({
       confidence: unit,
     })
     .optional(),
+  soundProfile: z
+    .object({ windows: z.int().positive(), speechShare: unit, musicShare: unit, silenceShare: unit })
+    .nullish(),
   facePosition: z.object({ x: unit, y: unit }).optional(),
   cadenceSections: z.array(z.number().positive()).length(3).optional(),
   pauseShare: optionalMeasurement,

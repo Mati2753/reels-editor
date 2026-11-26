@@ -185,6 +185,16 @@
                 <button class="link" id="history">Download edit history</button>
               </div>
             </details>
+            <details id="examples-panel" hidden>
+              <summary>Approved examples</summary>
+              <div class="options">
+                <label>Saved edit <select id="approved-example"></select></label>
+                <label>Version <select id="example-source"></select></label>
+                <button id="watch-example" class="soft">Watch example</button>
+                <button id="forget-example" class="link">Remove saved video example</button>
+                <video id="example-video" hidden controls playsinline style="width:100%;max-height:260px"></video>
+              </div>
+            </details>
             <div class="notes">
               <h3>Director’s notes</h3>
               <ul id="notes">

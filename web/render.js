@@ -478,6 +478,14 @@ export async function render(core, run, edl, facts, sources, getAsset, progress,
     tracks.set(file, next);
     return next++;
   };
+  // The original speech stays at unity. Fade only added tracks across each measured problem.
+  const duckEnvelopes = (options.mixRepairs ?? []).map((w) => {
+    const start = time(Math.max(0, w.start - 0.18)),
+      end = time(w.end + 0.18);
+    const strength = w.outputSpeech < 0.15 ? 0.98 : 0.9;
+    return "(1-" + strength + "*max(0,min(1,min((t-" + start + ")/0.08,(" + end + "-t)/0.08))))";
+  });
+  const attenuate = duckEnvelopes.length ? ",volume='" + duckEnvelopes.join("*") + "':eval=frame" : "";
   const music = edl.audio.music;
   if (music) {
     const id = await addInput(music.file, true);
@@ -489,7 +497,9 @@ export async function render(core, run, edl, facts, sources, getAsset, progress,
         time(cursor) +
         ",volume=" +
         music.gainDb +
-        "dB,afade=t=out:st=" +
+        "dB" +
+        attenuate +
+        ",afade=t=out:st=" +
         time(Math.max(0, cursor - 0.8)) +
         ":d=0.8[bed]",
     );
@@ -499,8 +509,10 @@ export async function render(core, run, edl, facts, sources, getAsset, progress,
   for (const [i, sound] of edl.audio.sfx.entries()) {
     const id = await addInput(sound.file);
     const idx = list.findIndex((s) => s.id === sound.at.segment);
-    const delay = Math.round(1000 * (scenes[idx]?.start ?? 0));
-    filters.push("[" + id + ":a]volume=" + sound.gainDb + "dB,adelay=" + delay + ":all=1[fx" + i + "]");
+    const delay = Math.round(1000 * ((scenes[idx]?.start ?? 0) + (sound.at.offset ?? 0)));
+    filters.push(
+      "[" + id + ":a]volume=" + sound.gainDb + "dB,adelay=" + delay + ":all=1" + attenuate + "[fx" + i + "]",
+    );
     mix.push("[fx" + i + "]");
   }
   filters.push(

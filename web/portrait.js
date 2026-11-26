@@ -1,4 +1,5 @@
 // Native FFmpeg timestamps determine the sampled source interval. Inference runs entirely in this worker.
+import { localModelRuntime } from "./model-runtime";
 import { portraitModel, evaluateMatte } from "../src/intelligence/portrait-matte";
 const { size, rate } = portraitModel,
   plane = size * size;
@@ -6,10 +7,7 @@ let opening;
 async function session(asset) {
   if (!opening)
     opening = (async () => {
-      const root = new URL("assets/portrait/", self.location.href).href;
-      importScripts(root + "ort.wasm.min.js");
-      self.ort.env.wasm.numThreads = 1;
-      self.ort.env.wasm.wasmPaths = root;
+      localModelRuntime();
       const chunks = await Promise.all([asset("portrait/model-0.bin"), asset("portrait/model-1.bin")]);
       const bytes = new Uint8Array(chunks[0].length + chunks[1].length);
       bytes.set(chunks[0]);
