@@ -1,3 +1,4 @@
+import { framingPoints } from "./faces";
 import { defaultBrand } from "../src/brand";
 
 import { cachedScene, checkpointScene, hashBytes } from "./storage";
@@ -7,7 +8,8 @@ const time = (n) => String(Math.round(n * 1000) / 1000);
 function drawText(core, id, event, kind, width, height, captionStyle) {
   const lines = [""];
   const title = kind !== "caption";
-  for (const word of String(event.text).trim().split(/\s+/)) {
+  const text = !title && captionStyle?.uppercase ? String(event.text).toUpperCase() : String(event.text);
+  for (const word of text.trim().split(/\s+/)) {
     const last = lines.length - 1;
     if (lines[last] && lines[last].length + word.length + 1 > (title ? 20 : 23)) lines.push(word);
     else lines[last] += (lines[last] ? " " : "") + word;
@@ -31,8 +33,17 @@ function drawText(core, id, event, kind, width, height, captionStyle) {
   core.FS.writeFile(file, lines.join("\n"));
   const start = time(event.start),
     end = time(event.end);
-  const ink = (kind === "number" ? defaultBrand.colors.active : defaultBrand.colors.text).replace("#", "0x");
-  const shadow = defaultBrand.colors.outline.replace("#", "0x");
+  const figure = kind === "proportion";
+  const ink = (
+    kind === "number" || figure
+      ? defaultBrand.colors.active
+      : !title && captionStyle?.ink
+        ? captionStyle.ink
+        : defaultBrand.colors.text
+  ).replace("#", "0x");
+  const dark =
+    !title && captionStyle?.ink && [2, 4, 6].reduce((n, idx) => n + parseInt(ink.slice(idx, idx + 2), 16), 0) < 250;
+  const shadow = dark ? "0xffffff" : defaultBrand.colors.outline.replace("#", "0x");
   return (
     "drawtext=fontfile=fonts/caption.ttf:textfile=" +
     file +
@@ -45,9 +56,11 @@ function drawText(core, id, event, kind, width, height, captionStyle) {
     shadow +
     "@0.8:shadowx=0:shadowy=2:line_spacing=6:x=(w-text_w)/2" +
     ":y='" +
-    (title
-      ? "h*0.155+12*exp(-13*(t-" + start + "))"
-      : "h*" + (captionStyle?.position === "center" ? 0.52 : (captionStyle?.center ?? 0.71)) + "-text_h/2") +
+    (figure
+      ? "h*0.395-text_h/2"
+      : title
+        ? "h*0.155+12*exp(-13*(t-" + start + "))"
+        : "h*" + (captionStyle?.position === "center" ? 0.52 : (captionStyle?.center ?? 0.71)) + "-text_h/2") +
     "'" +
     ":enable='between(t," +
     start +
@@ -116,10 +129,13 @@ export async function render(core, run, edl, facts, sources, getAsset, progress,
     if (transition?.type === "zoom")
       z += "+0.12*max(0,1-on/" + Math.max(1, Math.round(transition.duration * fps)) + ")";
     const screen = source.screen;
+    const centers = screen
+      ? screen.centers.filter((p) => p.at >= s.in && p.at <= s.out)
+      : framingPoints(source.faces, s.in, s.out);
     const crop = (axis) => {
       const dim = axis === "x" ? "iw" : "ih";
       const out = axis === "x" ? width : height;
-      const samples = screen.centers.filter((p) => p.at >= s.in && p.at <= s.out);
+      const samples = centers;
       if (!samples.length) return "(" + dim + "-" + out + ")/2";
       // Linear interpolation between a bounded number of measured centers.
       const step = Math.max(1, Math.ceil(samples.length / 12));
@@ -144,14 +160,15 @@ export async function render(core, run, edl, facts, sources, getAsset, progress,
           expr +
           ")";
       }
-      return "clip(" + dim + "*(" + expr + ")-" + out + "/2,0," + dim + "-" + out + ")";
+      const target = screen ? 0.5 : (options.faceTarget?.[axis] ?? 0.5);
+      return "clip(" + dim + "*(" + expr + ")-" + out + "*" + target + ",0," + dim + "-" + out + ")";
     };
     const filters = [
       "setpts=PTS-STARTPTS",
       "fps=" + fps + ":start_time=0",
       "tpad=stop_mode=clone:stop_duration=0.2",
       "scale=" + width + ":" + height + ":force_original_aspect_ratio=increase:force_divisible_by=2",
-      "crop=" + width + ":" + height + (screen ? ":x='" + crop("x") + "':y='" + crop("y") + "'" : ""),
+      "crop=" + width + ":" + height + (centers.length ? ":x='" + crop("x") + "':y='" + crop("y") + "'" : ""),
       "setsar=1",
     ];
     if (initial !== 1 || final !== 1 || transition?.type === "zoom")
@@ -211,6 +228,12 @@ export async function render(core, run, edl, facts, sources, getAsset, progress,
       const word = facts.words.find((w) => w.id === overlay.at.word);
       if (!word || word.clip !== s.clip || word.start < s.in || word.start >= s.out) continue;
       const start = word.start - s.in;
+      if (
+        options.illustration &&
+        start + cursor >= options.illustration.start &&
+        start + cursor < options.illustration.end
+      )
+        continue;
       const { value, decimals, prefix, suffix } = overlay.props;
       filters.push(
         drawText(
@@ -218,6 +241,52 @@ export async function render(core, run, edl, facts, sources, getAsset, progress,
           "number-" + j,
           { start, end: Math.min(seconds, start + overlay.duration), text: prefix + value.toFixed(decimals) + suffix },
           "number",
+          width,
+          height,
+          style,
+        ),
+      );
+    }
+    const graphic = options.illustration;
+    if (graphic && graphic.end > cursor && graphic.start < cursor + seconds) {
+      const local = graphic.start - cursor,
+        from = time(Math.max(0, local)),
+        until = time(Math.min(seconds, graphic.end - cursor));
+      const x = Math.round(width * 0.16),
+        y = Math.round(height * 0.44),
+        w = Math.round(width * 0.68),
+        h = Math.max(5, Math.round(height * 0.011));
+      const enable = ":enable='between(t," + from + "," + until + ")'";
+      filters.push("drawbox=x=" + x + ":y=" + y + ":w=" + w + ":h=" + h + ":color=black@0.72:t=fill" + enable);
+      const fill = Math.round((w * graphic.value) / 100);
+      for (let j = 0; j < 8 && fill > 0; j++) {
+        const left = Math.round((fill * j) / 8),
+          length = Math.round((fill * (j + 1)) / 8) - left;
+        if (length > 0)
+          filters.push(
+            "drawbox=x=" +
+              (x + left) +
+              ":y=" +
+              y +
+              ":w=" +
+              length +
+              ":h=" +
+              h +
+              ":color=" +
+              defaultBrand.colors.active.replace("#", "0x") +
+              ":t=fill:enable='between(t," +
+              time(Math.max(0, local + j * 0.055)) +
+              "," +
+              until +
+              ")'",
+          );
+      }
+      filters.push(
+        drawText(
+          core,
+          "proportion",
+          { start: Number(from), end: Number(until), text: graphic.value + "%" },
+          "proportion",
           width,
           height,
           style,

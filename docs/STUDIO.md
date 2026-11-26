@@ -58,3 +58,7 @@ For a hands-on collaboration in Claude Code, run `/review-edit <project-slug>` f
 | `projects/<slug>/work/edits/` | Versioned edit decision lists |
 | `projects/<slug>/out/` | Finished MP4s and their waveforms |
 | `projects/.formats/<id>/` | Learned format and thumbnail |
+
+Local jobs resume on restart, with up to two automatic recovery attempts. When the local encoder supports it, the native renderer can use H.264 hardware acceleration. Set REELS_ENCODER=cpu to force software encoding.
+
+The optional ComfyUI MCP tools require an operator-owned local ComfyUI installation, a licensed single-file SD-compatible checkpoint, REELFORGE_COMFY_CHECKPOINT set to its filename, and REELFORGE_COMFY_PORT set to the loopback port. The studio keeps credentials out of browser code. A generation request checks catalog matches first. For new artwork it submits one seeded 768×448, 16-step image, records the request ID, and can retrieve the result after a restart. An unknown job status requires inspecting the local queue before a new submission. The HTTP contract was tested with a real PNG and a simulated queue. No live diffusion checkpoint was available for this validation. [Official ComfyUI API workflow](https://github.com/comfyanonymous/ComfyUI/blob/master/script_examples/basic_api_example.py)

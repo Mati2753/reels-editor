@@ -16,6 +16,7 @@ export interface ProjectPaths {
   transcript: string;
   analysis: string;
   frames: string;
+  renderWorkspace?: string;
 }
 
 export function projectPaths(projectsRoot: string, slug: string): ProjectPaths {

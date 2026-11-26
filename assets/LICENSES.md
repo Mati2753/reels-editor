@@ -13,3 +13,5 @@ Tout fichier ajouté ici doit pouvoir être redistribué avec le dépôt. Une li
 | `music/drift.m4a`, `sfx/pulse.wav`, `sfx/sweep.wav`, `studio/*.png` | Musique et effets synthétisés pour le studio, formes d’onde générées à partir des enregistrements | CC0-1.0 |
 
 Browser OCR uses the Apache-2.0 Tesseract.js and Tesseract.js-core distributions and English language data from the @tesseract.js-data/eng npm package. The build includes the core license and the bundled worker’s redistribution notices beside the engine. [Tesseract.js](https://github.com/naptha/tesseract.js) · [Training data](https://github.com/naptha/tessdata)
+
+Browser face framing uses Nenad Markus’s MIT-licensed picojs implementation at afffa50ec4134a47005f2cbf8112eaa69f65f37e and the official pico facefinder cascade at c2e81f9d23cc11d1a612fd21e4f9de0921a5d0d9. The MIT notice ships beside both files. [picojs](https://github.com/nenadmarkus/picojs) · [pico](https://github.com/nenadmarkus/pico)

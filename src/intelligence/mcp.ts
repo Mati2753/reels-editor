@@ -1,3 +1,6 @@
+import { IllustrationInput, planIllustration } from "./illustration";
+import { GenerateBrollSchema, GenerationStatusSchema, generateBroll, generationStatus } from "./generation";
+import { DirectTimelineSchema, RenderTimelineSchema, directTimeline, renderTimeline } from "./edl-tools";
 import path from "node:path";
 import { projectFile, projectMedia, MediaOperationSchema } from "./project-media";
 import { recallFeedback, FeedbackSchema } from "./feedback";
@@ -37,6 +40,24 @@ serveStdio(() => {
       return { content: [{ type: "text" as const, text: JSON.stringify(result) }] };
     });
   }
+  tool(
+    "direct_timeline",
+    "Replace clips or set camera, text, graphics, transitions, captions and sound on a new edit decision list.",
+    DirectTimelineSchema,
+    directTimeline,
+  );
+  tool(
+    "render_timeline",
+    "Validate and render a new, isolated native timeline for an analyzed project.",
+    RenderTimelineSchema,
+    (d) => renderTimeline(root, d),
+  );
+  tool(
+    "plan_illustration",
+    "Generate a proportional graphic plan for a literal percentage when stock is unavailable.",
+    IllustrationInput,
+    planIllustration,
+  );
   tool("search_assets", "Find compatible licensed assets with a documented matching reason.", AssetSearchSchema, (d) =>
     searchAssets(d),
   );
@@ -100,6 +121,25 @@ serveStdio(() => {
   tool("search_freesound", "Search sound metadata under the configured license policy.", FreesoundSearchInput, (d) =>
     searchFreesound(d),
   );
+  if (process.env.REELFORGE_COMFY_CHECKPOINT && process.env.REELFORGE_COMFY_PORT) {
+    const cfg = {
+      root,
+      checkpoint: process.env.REELFORGE_COMFY_CHECKPOINT,
+      port: Number(process.env.REELFORGE_COMFY_PORT),
+    };
+    tool(
+      "generate_broll",
+      "Use matching licensed stock or submit a seeded image to the operator’s authorized local ComfyUI worker.",
+      GenerateBrollSchema,
+      (d) => generateBroll(d, cfg),
+    );
+    tool(
+      "generation_status",
+      "Resume a local generation and collect its image inside the project.",
+      GenerationStatusSchema,
+      (d) => generationStatus(d, cfg),
+    );
+  }
   if (process.env.REELFORGE_ELEVENLABS_MAX_CREDITS && process.env.ELEVENLABS_API_KEY)
     tool(
       "generate_voiceover",

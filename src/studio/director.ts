@@ -208,6 +208,9 @@ export function buildEdit(
   }
   if (total < MIN_DURATION - 0.01)
     throw new Error("The selected material is under five seconds. Choose longer footage or a longer cut.");
+  const transforms = format.profile?.references.flatMap((r) => (r.pictureTransform ? [r.pictureTransform] : [])) ?? [];
+  const pullBack =
+    transforms.length > 0 && transforms.filter((t) => t.direction === "out").length > transforms.length / 2;
   const segments: ClipSegment[] = selected.map((b, i) => {
     const emphasized = strength(b.text) >= 1.5;
     const scale = settings.motion && emphasized ? 1 + format.zoom : 1;
@@ -219,9 +222,11 @@ export function buildEdit(
       in: b.start,
       out: b.end,
       framing: {
-        scale,
+        scale: pullBack && move ? ms(scale + format.zoom * 0.55) : scale,
         origin: { x: 0.5, y: 0.5 },
-        ...(move ? { move: { toScale: ms(scale + format.zoom * 0.55), ease: "easeInOut" as const } } : {}),
+        ...(move
+          ? { move: { toScale: pullBack ? scale : ms(scale + format.zoom * 0.55), ease: "easeInOut" as const } }
+          : {}),
       },
     };
   });

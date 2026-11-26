@@ -1,3 +1,4 @@
+import { estimateInk } from "../src/intelligence/caption-layout";
 import { createWorker, PSM } from "tesseract.js";
 
 // One local worker per batch. Image bytes and OCR results never leave the browser.
@@ -45,6 +46,7 @@ export async function readScreenText(frames, helpers, active) {
               ? (levels[Math.floor(levels.length * 0.9)] + 0.05) / (levels[Math.floor(levels.length * 0.1)] + 0.05)
               : undefined;
             observations.push({
+              ink: estimateInk(pixels, frame.width, frame.height, line.bbox),
               contrastRatio,
               at: frame.at,
               text: line.text.trim(),

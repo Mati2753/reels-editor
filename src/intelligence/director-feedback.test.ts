@@ -67,3 +67,35 @@ describe("editing evidence", () => {
     expect(result.checks.find((c) => c.id === "caption-presence")?.basis).toContain("1 of 2");
   });
 });
+
+import { comparePictures, transformSize } from "./picture-transform";
+it("measures a global image translation and excludes a known hard cut", () => {
+  const { width: w, height: h } = transformSize,
+    stride = w * h,
+    frames = new Uint8Array(3 * stride);
+  for (let y = 0; y < h; y++)
+    for (let x = 0; x < w; x++) {
+      const value = (17 * x + 47 * y + x * y) % 256;
+      for (let f = 0; f < 3; f++) frames[stride * f + y * w + ((x + 2 * f) % w)] = value;
+    }
+  const hits = comparePictures(frames, 4, [0.4]);
+  expect(hits).toHaveLength(1);
+  expect(hits[0]!.dx).toBeCloseTo(2 / w);
+  expect(hits[0]!.scale).toBe(1);
+  expect(comparePictures(frames.fill(128), 4, [])).toEqual([]);
+});
+import { estimateInk } from "./caption-layout";
+it("measures a stable colored caption fill and abstains on a uniform patch", () => {
+  const width = 22,
+    height = 16,
+    p = new Uint8ClampedArray(width * height * 4);
+  const box = { x0: 5, x1: 17, y0: 4, y1: 12 };
+  expect(estimateInk(p, width, height, box)).toBeNull();
+  for (let y = 5; y < 11; y++)
+    for (let x = 6; x < 15; x++) {
+      const i = (y * width + x) * 4;
+      p[i] = 240;
+      p[i + 1] = 200;
+    }
+  expect(estimateInk(p, width, height, box)).toBe("#f0c800");
+});

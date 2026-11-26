@@ -1,0 +1,8 @@
+{
+  "kind": "proportion",
+  "value": 64,
+  "start": 0.2,
+  "end": 3.2,
+  "sourceText": "64% of respondents chose this option.",
+  "reason": "The retained phrase states a specific part of a whole. The bar represents that exact percentage."
+}

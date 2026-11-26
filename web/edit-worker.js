@@ -1,3 +1,6 @@
+import { comparePictures, transformSize } from "../src/intelligence/picture-transform";
+import { planIllustration } from "../src/intelligence/illustration";
+import { locateFaces } from "./faces";
 import { trackScreen } from "../src/intelligence/screen";
 import { inferCaptionLayout } from "../src/intelligence/caption-layout";
 import { recallFeedback, feedbackChoices } from "../src/intelligence/feedback";
@@ -304,6 +307,18 @@ self.onmessage = async ({ data }) => {
                 " because a consistent green or blue screen was not detected.",
         );
       }
+      if (settings.faces && !m.screen) {
+        try {
+          const cacheKey = "face-pico-1:" + digest;
+          m.faces = await readLocal(cacheKey);
+          if (!m.faces) {
+            m.faces = await locateFaces(core, run, m, asset);
+            await saveLocal(cacheKey, m.faces);
+          }
+        } catch {
+          notes.push("Face framing was unavailable for " + file.name + ".");
+        }
+      }
       m.name = file.name;
       m.bytes = file.size;
       m.digest = digest;
@@ -316,6 +331,42 @@ self.onmessage = async ({ data }) => {
       }
       if (kind === "learn") {
         const item = referenceCard(core, run, m, digest, file.name);
+        const rate = Math.min(4, 160 / m.seconds);
+        run([
+          "-i",
+          m.input,
+          "-an",
+          "-vf",
+          "fps=" + rate + ",scale=" + transformSize.width + ":" + transformSize.height,
+          "-threads",
+          "1",
+          "-pix_fmt",
+          "gray",
+          "-f",
+          "rawvideo",
+          "motion.gray",
+        ]);
+        const raw = core.FS.readFile("motion.gray");
+        core.FS.unlink("motion.gray");
+        const transforms = comparePictures(
+          raw,
+          rate,
+          m.visual.cuts.map((c) => c.at),
+        );
+        if (
+          transforms.length >= 3 &&
+          transforms.length >= 0.28 * (raw.length / (transformSize.width * transformSize.height) - 1)
+        ) {
+          const scale = median(transforms.map((v) => v.scale));
+          item.card.pictureTransform = {
+            direction: scale > 1.015 ? "in" : scale < 0.985 ? "out" : "translate",
+            scalePerSecond: Math.abs(scale - 1) * rate,
+            confidence: median(transforms.map((v) => v.confidence)),
+          };
+        }
+        const centers = m.faces?.centers ?? [];
+        if (centers.length >= 3 && centers.length >= 0.7 * m.faces.frames)
+          item.card.facePosition = { x: median(centers.map((p) => p.x)), y: median(centers.map((p) => p.y)) };
         let visibleText = [];
         try {
           progress("Reading text in the reference", 0.29);
@@ -336,6 +387,8 @@ self.onmessage = async ({ data }) => {
           name: file.name,
           analysis: m.evidence,
           frames: m.visual.frames,
+          pictureTransforms: transforms,
+          faces: m.faces,
           embeddedSubtitles: item.subtitleCues,
           visibleText,
           semantics: m.semantic ?? [],
@@ -406,6 +459,8 @@ self.onmessage = async ({ data }) => {
     const layouts = format.profile?.references.flatMap((r) => (r.captionLayout ? [r.captionLayout] : [])) ?? [];
     if (layouts.length)
       settings.captionStyle = {
+        ink: layouts[0].ink && layouts.every((l) => l.ink === layouts[0].ink) ? layouts[0].ink : null,
+        uppercase: layouts.every((l) => l.uppercase),
         center: median(layouts.map((l) => l.center)),
         height: median(layouts.map((l) => l.height)),
       };
@@ -475,21 +530,34 @@ self.onmessage = async ({ data }) => {
       settings.broll !== false && format.profile?.preferences.broll !== false
         ? selectBroll(phrases, { engine: "browser", rejected: memory.rejected })
         : null;
+    const illustration = planIllustration({
+      phrases,
+      motion: settings.motion && settings.broll !== false,
+      hasStock: !!broll,
+    });
+    if (illustration)
+      notes.push("Created a percentage graphic from the spoken phrase “" + illustration.sourceText + "”.");
     const iterations = [],
       limit = Math.max(0, Math.min(2, Number(settings.iterations ?? 1)));
     let adjustment = { brightness: grade.brightness, gainDb: 0 },
       rendered = null,
       previous = null,
       report = null;
+    const positions = format.profile?.references.flatMap((r) => (r.facePosition ? [r.facePosition] : [])) ?? [];
+    const learnedFaceTarget = positions.length
+      ? { x: median(positions.map((p) => p.x)), y: median(positions.map((p) => p.y)) }
+      : { x: 0.5, y: 0.38 };
     for (let i = 0; i <= limit; i++) {
       const priorRender = rendered,
         priorReport = report,
         priorAdjustment = iterations.at(-1)?.adjustment;
       rendered = await render(core, run, edl, facts, media, asset, progress, {
         dimensions,
+        faceTarget: learnedFaceTarget,
         grade: { ...grade, brightness: adjustment.brightness },
         gainDb: adjustment.gainDb,
         broll,
+        illustration,
         captionStyle: settings.captionStyle,
       });
       progress("Checking the finished picture and sound", 0.95);
@@ -584,7 +652,10 @@ self.onmessage = async ({ data }) => {
         decisions: reasons,
         grade: { ...grade, ...adjustment },
         broll,
+        illustration,
         effects: { segments: edl.segments, transitions: edl.transitions, overlays: edl.overlays, audio: edl.audio },
+        faceTarget: learnedFaceTarget,
+        faces: media.filter((m) => m.faces?.centers.length).map((m) => ({ clip: m.clip, ...m.faces })),
         screens: media.filter((m) => m.screen).map((m) => ({ clip: m.clip, ...m.screen })),
         semanticObservations: media.flatMap((m) => m.semantic ?? []),
         referenceStyle: format.id,

@@ -22,7 +22,8 @@ with sync_playwright() as pw:
  page.locator('#style-editor summary').click()
  save('#evidence',work/'ocr-evidence-new.json')
  result=json.loads((work/'ocr-evidence-new.json').read_text())
- assert result['style']['profile']['references'][0]['captionLayout']['samples'] >= 2
+ layout=result['style']['profile']['references'][0]['captionLayout']
+ assert layout['samples'] >= 2 and layout['uppercase'] and layout['ink']
  assert len(result['evidence'][0]['visibleText'])>0
  page.locator('#options summary').click()
  page.select_option('#quality','draft')
@@ -49,4 +50,11 @@ with sync_playwright() as pw:
  screen=json.loads((work/'screen-cut.json').read_text())['metadata']['screens'][0]
  assert screen['centers'][-1]['x']-screen['centers'][0]['x']>.35
  print("Validated OCR learning, recall after reload, export and screen tracking.",flush=True)
+ page.uncheck('#screen')
+ page.set_input_files('#file',str(root/'examples/face-framing/source.mp4'))
+ done()
+ save('#cut-json',work/'face-cut.json')
+ centers=json.loads((work/'face-cut.json').read_text())['metadata']['faces'][0]['centers']
+ assert centers[-1]['x']-centers[0]['x']>.35
+ print("Validated moving face detection and vertical export.",flush=True)
  browser.close()

@@ -152,7 +152,7 @@ function settings() {
   return {
     ratio: $("ratio").value,
     quality: $("quality").value,
-    screen: $("screen").checked,
+    screen: $("screen").checked, faces: $("faces").checked,
     background: $("background").value,
     visual: $("visual").checked,
     broll: $("broll").checked,

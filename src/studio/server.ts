@@ -276,7 +276,7 @@ const server = createServer(async (req, res) => {
       if (!format) throw new HttpError(400, "Select an existing format.");
       if (subtitleWrites.has(paths.slug) || jobs.get(paths.slug)?.state === "working")
         throw new HttpError(409, "This project is already rendering.");
-      startEdit(paths, format, settings);
+      await startEdit(paths, project, format, settings);
       return json(res, { job: jobs.get(paths.slug) }, 202);
     }
     if (method === "POST" && action === "subtitles") {
@@ -315,4 +315,12 @@ const server = createServer(async (req, res) => {
 });
 server.requestTimeout = 0;
 const port = Number(process.env.PORT ?? 4173);
-server.listen(port, host, () => console.log(`Cutroom is listening on http://${host}:${port}`));
+async function recoverEdits() {
+  const entries=await readdir(root,{withFileTypes:true}).catch(()=>[]);
+  for(const entry of entries){
+    if(!entry.isDirectory() || !isValidSlug(entry.name))continue;
+    const paths=projectPaths(root,entry.name);
+    try{await projectJob(paths,await readProject(paths));}catch(e){console.error("Recovery failed for "+entry.name,String(e));}
+  }
+}
+server.listen(port,host,()=>{console.log(`Cutroom is listening on http://${host}:${port}`);void recoverEdits();});

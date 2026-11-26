@@ -12,6 +12,14 @@ export const StyleSourceSchema = z.object({
   height: z.number().positive(),
   shots: z.number().int().positive(),
   cadence: z.number().positive(),
+  pictureTransform: z
+    .object({
+      direction: z.enum(["in", "out", "translate"]),
+      scalePerSecond: z.number().nonnegative(),
+      confidence: unit,
+    })
+    .optional(),
+  facePosition: z.object({ x: unit, y: unit }).optional(),
   cadenceSections: z.array(z.number().positive()).length(3).optional(),
   pauseShare: optionalMeasurement,
   motion: optionalMeasurement,
@@ -21,6 +29,11 @@ export const StyleSourceSchema = z.object({
   cueWords: optionalMeasurement,
   captionLayout: z
     .object({
+      ink: z
+        .string()
+        .regex(/^#[a-f0-9]{6}$/i)
+        .nullish(),
+      uppercase: z.boolean().optional(),
       center: unit,
       height: unit,
       confidence: unit,
