@@ -1,3 +1,4 @@
+import { captionScan } from "./caption-scan";
 import { estimateInk } from "../src/intelligence/caption-layout";
 import { createWorker, PSM } from "tesseract.js";
 
@@ -16,22 +17,42 @@ export async function readScreenText(frames, helpers, active) {
   }
   helpers.add(worker);
   try {
-    await worker.setParameters({ tessedit_pageseg_mode: PSM.SPARSE_TEXT });
     const observations = [];
     for (const frame of frames) {
       const image = new Blob([frame.bytes], { type: "image/png" });
-      const { data } = await worker.recognize(image, {}, { blocks: true });
       const bitmap = await createImageBitmap(image);
       const canvas = new OffscreenCanvas(frame.width, frame.height);
       const ctx = canvas.getContext("2d", { willReadFrequently: true });
       ctx.drawImage(bitmap, 0, 0);
       bitmap.close();
       const pixels = ctx.getImageData(0, 0, frame.width, frame.height).data;
-      for (const block of data.blocks ?? [])
+      const scan = frame.guide && captionScan(pixels, frame.width, frame.height, frame.guide);
+      let source = image,
+        transform = null;
+      if (scan) {
+        source = await scan.picture.convertToBlob({ type: "image/png" });
+        transform = scan;
+      }
+      await worker.setParameters({ tessedit_pageseg_mode: scan ? PSM.SINGLE_LINE : PSM.SPARSE_TEXT });
+      let result = await worker.recognize(source, {}, { blocks: true });
+      if (scan && (!result.data.text.trim() || result.data.confidence < 65)) {
+        transform = null;
+        await worker.setParameters({ tessedit_pageseg_mode: PSM.SPARSE_TEXT });
+        result = await worker.recognize(image, {}, { blocks: true });
+      }
+      for (const block of result.data.blocks ?? [])
         for (const paragraph of block.paragraphs)
           for (const line of paragraph.lines) {
-            if (line.confidence < 65 || !line.text.trim()) continue;
-            const { x0, y0, x1, y1 } = line.bbox;
+            if (line.confidence < 65 || !/[\p{L}\p{N}]/u.test(line.text)) continue;
+            const bounds = transform
+              ? {
+                  x0: Math.max(0, Math.floor(transform.left + line.bbox.x0 / transform.scale)),
+                  x1: Math.min(frame.width, Math.ceil(transform.left + line.bbox.x1 / transform.scale)),
+                  y0: Math.max(0, Math.floor(transform.top + line.bbox.y0 / transform.scale)),
+                  y1: Math.min(frame.height, Math.ceil(transform.top + line.bbox.y1 / transform.scale)),
+                }
+              : line.bbox;
+            const { x0, x1, y0, y1 } = bounds;
             const levels = [];
             const linear = (v) => ((v /= 255) <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
             for (let y = y0; y < y1; y += 2)
@@ -46,7 +67,7 @@ export async function readScreenText(frames, helpers, active) {
               ? (levels[Math.floor(levels.length * 0.9)] + 0.05) / (levels[Math.floor(levels.length * 0.1)] + 0.05)
               : undefined;
             observations.push({
-              ink: estimateInk(pixels, frame.width, frame.height, line.bbox),
+              ink: estimateInk(pixels, frame.width, frame.height, bounds),
               contrastRatio,
               at: frame.at,
               text: line.text.trim(),

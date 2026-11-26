@@ -110,7 +110,7 @@ async function getVisualContext(core, run, m) {
   await saveLocal(key, observations);
   return observations;
 }
-async function inspectText(core, run, media, times) {
+async function inspectText(core, run, media, times, guide) {
   const frames = [];
   for (const at of [...new Set(times)].slice(0, 8)) {
     run([
@@ -131,7 +131,7 @@ async function inspectText(core, run, media, times) {
     const bytes = core.FS.readFile("text-sample.png");
     core.FS.unlink("text-sample.png");
     const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
-    frames.push({ at, bytes, width: view.getUint32(16), height: view.getUint32(20) });
+    frames.push({ at, bytes, width: view.getUint32(16), height: view.getUint32(20), guide });
   }
   return frames.length
     ? model(
@@ -636,9 +636,9 @@ self.onmessage = async ({ data }) => {
         const indices = [...new Set([0, Math.floor(cues.length / 2), cues.length - 1])];
         try {
           captionSampleTimes = indices.map((i) => (cues[i].start + cues[i].end) / 2);
-          const lines = await inspectText(core, run, measured, captionSampleTimes);
           const captionCenter =
             settings.captionStyle?.position === "center" ? 0.52 : (settings.captionStyle?.center ?? 0.71);
+          const lines = await inspectText(core, run, measured, captionSampleTimes, { center: captionCenter, ink: settings.captionStyle?.ink });
           observedCaptions = lines
             .filter((l) => Math.abs(l.y + l.height / 2 - captionCenter) < 0.17)
             .map((l) => ({

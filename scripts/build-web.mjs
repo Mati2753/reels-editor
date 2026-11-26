@@ -54,6 +54,7 @@ for (const file of [
 ]) {
   await cp(path.join(root, "assets", file), path.join(out, "assets", path.basename(file)));
 }
+await cp(path.join(root, "examples/asset-library/solar-cut.mp4"), path.join(out, "assets/solar-edit.mp4"));
 for (const preview of ["amber.webp", "paper.png", "crystal.webp", "glint.webp"]) {
   await cp(path.join(root, "assets/production", preview), path.join(out, "assets", preview));
 }

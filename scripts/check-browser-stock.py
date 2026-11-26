@@ -17,5 +17,8 @@ with sync_playwright() as pw:
  for ctrl,name in [('cut-json','solar-cut.json'),('save','solar-cut.mp4')]:
   with p.expect_download() as d:p.locator('#'+ctrl).click()
   d.value.save_as(str(output/name))
- m=json.loads((output/'solar-cut.json').read_text())['metadata']['broll']
+ metadata=json.loads((output/'solar-cut.json').read_text())['metadata']
+ m=metadata['broll']
+ report=metadata['quality'][-1]['report']
+ assert all(check['status']=='pass' for check in report['checks'] if check['id'] in ('caption-presence','caption-contrast'))
  assert m['assetId']=='video-solar-flare' and m['sourceURL'].startswith('https://images.nasa.gov/');print(m,flush=True)

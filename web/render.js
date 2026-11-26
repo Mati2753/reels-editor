@@ -51,7 +51,7 @@ function drawText(core, id, event, kind, width, height, captionStyle) {
     ink +
     ":fontsize=" +
     size +
-    (captionStyle?.backplate && !title ? ":box=1:boxcolor=black@0.88:boxborderw=6" : "") +
+    (captionStyle?.backplate && !title ? ":box=1:boxcolor=" + (dark ? "white" : "black") + "@0.88:boxborderw=6" : "") +
     ":borderw=3:bordercolor=" +
     shadow +
     "@0.8:shadowx=0:shadowy=2:line_spacing=6:x=(w-text_w)/2" +

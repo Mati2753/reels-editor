@@ -1,0 +1,105 @@
+{
+  "before": [
+    {
+      "code": "caption-presence",
+      "severity": "warning",
+      "start": 0,
+      "end": 1.667,
+      "confidence": 0.65,
+      "basis": "The picture detector reported no matching text during this authored cue.",
+      "fix": "Inspect the rendered frames and repair caption rendering or timing if the cue is missing."
+    },
+    {
+      "code": "caption-presence",
+      "severity": "warning",
+      "start": 1.667,
+      "end": 2.63,
+      "confidence": 0.65,
+      "basis": "The picture detector reported no matching text during this authored cue.",
+      "fix": "Inspect the rendered frames and repair caption rendering or timing if the cue is missing."
+    },
+    {
+      "code": "caption-contrast",
+      "severity": "warning",
+      "start": 2.1485,
+      "end": 2.181833,
+      "confidence": 0.65,
+      "basis": "Observed caption contrast ratio 1.46 was below the 3:1 large-text review threshold.",
+      "fix": "Adjust the outline, backplate or caption color and remeasure."
+    }
+  ],
+  "after": {
+    "status": "pass",
+    "checks": [
+      {
+        "id": "frame-size",
+        "status": "pass",
+        "basis": "Probed 640\u00d7360 pixels. Planned 640\u00d7360."
+      },
+      {
+        "id": "frame-rate",
+        "status": "pass",
+        "basis": "Probed video rate 30.0003 fps. Planned 30 fps."
+      },
+      {
+        "id": "frame-count",
+        "status": "pass",
+        "basis": "Counted 180 output frames. The planned timeline has 180."
+      },
+      {
+        "id": "duration",
+        "status": "pass",
+        "basis": "Probed video duration 6 s. Planned 6 s with a one-frame tolerance."
+      },
+      {
+        "id": "picture-level",
+        "status": "unmeasured",
+        "basis": "Comparison requires measured output luma and a comparable target in the same color range."
+      },
+      {
+        "id": "cut-cadence",
+        "status": "unmeasured",
+        "basis": "Comparison requires a measured reference cadence and observed cuts in the output."
+      },
+      {
+        "id": "true-peak",
+        "status": "pass",
+        "basis": "Measured true peak -7.6 dBTP, delivery ceiling -1 dBTP (0.1 dB tolerance)."
+      },
+      {
+        "id": "sample-clipping",
+        "status": "pass",
+        "basis": "Decoded full-scale scan counted 0 samples in 0 intervals."
+      },
+      {
+        "id": "caption-presence",
+        "status": "pass",
+        "basis": "Compared 2 of 2 authored cues with 2 rendered-picture detections."
+      },
+      {
+        "id": "caption-timing",
+        "status": "pass",
+        "basis": "Checked 2 authored cues. Rendered observations with independently measured cue boundaries: 0."
+      },
+      {
+        "id": "caption-layout",
+        "status": "pass",
+        "basis": "Compared 0 authored boxes and 2 observed boxes with their canvases."
+      },
+      {
+        "id": "caption-contrast",
+        "status": "pass",
+        "basis": "Checked local contrast for 2 caption observations."
+      }
+    ],
+    "issues": [],
+    "metrics": {
+      "lumaDelta": null,
+      "medianShotSeconds": 2.99997,
+      "peakExcessDb": 0,
+      "clippedSamples": 0
+    },
+    "omittedIssueCount": 0
+  },
+  "negativeControl": "A matched time from the original NASA footage had no matching words."
+}
