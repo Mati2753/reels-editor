@@ -147,7 +147,7 @@ Chaque composant accepte certaines zones seulement (`overlay-zone`). Il compose 
 type CaptionConfig = {
   enabled: boolean
   style: string                  // nom dans src/remotion/captions/styles.ts ("bold")
-  maxWordsPerPage: number        // 2 à 4
+  maxWordsPerPage: number        // 1 à 4
   position: "center" | "lower-third" | "auto"
   emphasis: { word: string; style: "color" | "scale" | "box" }[]
   overrides: { word: string; text: string }[]   // corrections de transcription ; "" retire le mot des sous-titres
