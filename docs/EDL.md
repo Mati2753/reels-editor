@@ -211,3 +211,5 @@ Avertissements :
 - Emphase ou correction sur un mot coupé, donc sans effet [`caption-cut-word`] ; mot joué par deux segments [`word-kept-twice`].
 - Durée de transition hors de celles de `DIRECTOR.md` [`transition-range`].
 - Overlay : texte composé plus petit que la taille voulue par le composant [`overlay-text-shrunk`], plus de 6 mots [`overlay-word-count`], moins de 1,2 s ou plus de 4 s à l'écran [`overlay-duration`], sortie plus longue que l'entrée [`overlay-motion`].
+
+A subtitle page may contain one to four words. A one-word style follows the timestamp of each spoken word.

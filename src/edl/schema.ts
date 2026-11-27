@@ -142,7 +142,7 @@ export const CaptionConfigSchema = z.strictObject({
   enabled: z.boolean(),
   /** Name in src/remotion/captions/styles.ts. */
   style: z.string(),
-  maxWordsPerPage: z.number().int().min(2).max(4),
+  maxWordsPerPage: z.number().int().min(1).max(4),
   position: z.enum(["center", "lower-third", "auto"]),
   emphasis: z.array(z.strictObject({ word: z.string(), style: z.enum(["color", "scale", "box"]) })),
   /** Corrected caption text for one word; "" removes the word from the captions only. */

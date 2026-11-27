@@ -57,7 +57,7 @@ export const PreferencesSchema = z
   .object({
     cadence: z.number().min(0.8).max(12).optional(),
     zoom: z.number().min(0).max(0.3).optional(),
-    captionWords: z.number().int().min(2).max(4).optional(),
+    captionWords: z.number().int().min(1).max(4).optional(),
     musicDb: z.number().min(-50).max(-8).nullable().optional(),
     transition: z.enum(["cut", "fade", "zoom", "flash"]).optional(),
     broll: z.boolean().optional(),

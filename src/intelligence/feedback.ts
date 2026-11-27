@@ -15,7 +15,7 @@ export const ApprovedLookSchema = z.object({
   zoom: z.number().min(0).max(0.3),
   transition: z.enum(["cut", "fade", "flash", "zoom"]),
   stationary: z.boolean(),
-  captionWords: z.int().min(2).max(4),
+  captionWords: z.int().min(1).max(4),
   captionStyle: captionLook,
   musicDb: z.number().finite().nullable(),
   accent: z.enum(["sfx/sweep.wav", "sfx/pulse.wav"]).nullable(),

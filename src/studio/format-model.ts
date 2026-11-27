@@ -12,7 +12,7 @@ export const FormatSchema = z.object({
   pauseSeconds: z.number().positive(),
   zoom: z.number().min(0).max(0.3),
   transition: z.enum(["cut", "fade", "zoom", "flash"]),
-  captionWords: z.number().int().min(2).max(4),
+  captionWords: z.number().int().min(1).max(4),
   musicDb: z.number().nullable(),
   reference: z
     .object({
@@ -99,7 +99,7 @@ export function formatFromMeasurements(
     transition,
     captionWords:
       captionCueWords !== null
-        ? Math.max(2, Math.min(4, Math.round(captionCueWords)))
+        ? Math.max(1, Math.min(4, Math.round(captionCueWords)))
         : shotSeconds <= 2.5
           ? 2
           : shotSeconds < 4
